@@ -7,72 +7,64 @@ from .models import Follow
 User = get_user_model()
 
 
-class FollowerSerializer(serializers.ModelSerializer):
-    """سریالایزر برای نمایش فالوورها"""
-    id = serializers.UUIDField(source='follower.id', read_only=True)
-    username = serializers.CharField(source='follower.username', read_only=True)
-    phone = serializers.CharField(source='follower.phone', read_only=True)
-    display_name = serializers.SerializerMethodField()
-    profile_image = serializers.SerializerMethodField()
-    is_private = serializers.SerializerMethodField()
+class FollowSerializer(serializers.ModelSerializer):
+    """سریالایزر اصلی فالو"""
+    
+    follower_id = serializers.UUIDField(source='follower.id', read_only=True)
+    follower_username = serializers.CharField(source='follower.username', read_only=True)
+    follower_display_name = serializers.SerializerMethodField()
+    follower_profile_image = serializers.SerializerMethodField()
+    
+    following_id = serializers.UUIDField(source='following.id', read_only=True)
+    following_username = serializers.CharField(source='following.username', read_only=True)
+    following_display_name = serializers.SerializerMethodField()
+    following_profile_image = serializers.SerializerMethodField()
+    
     created_at = serializers.DateTimeField(read_only=True)
-
+    
     class Meta:
         model = Follow
-        fields = ['id', 'username', 'phone', 'display_name', 'profile_image', 'is_private', 'created_at']
-
-    def get_display_name(self, obj):
+        fields = [
+            'id', 'created_at',
+            'follower_id', 'follower_username', 'follower_display_name', 'follower_profile_image',
+            'following_id', 'following_username', 'following_display_name', 'following_profile_image'
+        ]
+        read_only_fields = ['id', 'created_at']
+    
+    def get_follower_display_name(self, obj):
         if hasattr(obj.follower, 'profile') and obj.follower.profile:
             return obj.follower.profile.display_name or obj.follower.username
         return obj.follower.username
-
-    def get_profile_image(self, obj):
+    
+    def get_follower_profile_image(self, obj):
         if hasattr(obj.follower, 'profile') and obj.follower.profile and obj.follower.profile.profile_image:
             return obj.follower.profile.profile_image.url
         return None
-
-    def get_is_private(self, obj):
-        if hasattr(obj.follower, 'profile') and obj.follower.profile:
-            return obj.follower.profile.is_private
-        return False
-
-
-class FollowingSerializer(serializers.ModelSerializer):
-    """سریالایزر برای نمایش فالوینگ‌ها"""
-    id = serializers.UUIDField(source='following.id', read_only=True)
-    username = serializers.CharField(source='following.username', read_only=True)
-    phone = serializers.CharField(source='following.phone', read_only=True)
-    display_name = serializers.SerializerMethodField()
-    profile_image = serializers.SerializerMethodField()
-    is_private = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(read_only=True)
-
-    class Meta:
-        model = Follow
-        fields = ['id', 'username', 'phone', 'display_name', 'profile_image', 'is_private', 'created_at']
-
-    def get_display_name(self, obj):
+    
+    def get_following_display_name(self, obj):
         if hasattr(obj.following, 'profile') and obj.following.profile:
             return obj.following.profile.display_name or obj.following.username
         return obj.following.username
-
-    def get_profile_image(self, obj):
+    
+    def get_following_profile_image(self, obj):
         if hasattr(obj.following, 'profile') and obj.following.profile and obj.following.profile.profile_image:
             return obj.following.profile.profile_image.url
         return None
 
-    def get_is_private(self, obj):
-        if hasattr(obj.following, 'profile') and obj.following.profile:
-            return obj.following.profile.is_private
-        return False
+
+class FollowerListSerializer(serializers.Serializer):
+    """سریالایزر لیست فالوورها (ساده)"""
+    id = serializers.UUIDField()
+    username = serializers.CharField()
+    display_name = serializers.CharField()
+    profile_image = serializers.CharField(allow_null=True)
+    followed_at = serializers.DateTimeField()
 
 
-class FollowActionSerializer(serializers.Serializer):
-    """سریالایزر برای عملیات فالو/آنفالو"""
-    user_id = serializers.UUIDField(required=True)
-    
-    def validate_user_id(self, value):
-        request = self.context.get('request')
-        if request and str(request.user.id) == str(value):
-            raise serializers.ValidationError("نمی‌توانید خودتان را فالو کنید.")
-        return value
+class FollowingListSerializer(serializers.Serializer):
+    """سریالایزر لیست فالوینگ‌ها (ساده)"""
+    id = serializers.UUIDField()
+    username = serializers.CharField()
+    display_name = serializers.CharField()
+    profile_image = serializers.CharField(allow_null=True)
+    followed_at = serializers.DateTimeField()
