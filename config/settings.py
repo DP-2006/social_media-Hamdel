@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'apps.ml',
     'django_celery_results',
     'django_celery_beat',
+    'apps.search',
 
 ]
 
@@ -247,16 +248,13 @@ SMS_PROVIDER = 'kavenegar'
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),      # افزایش به 1 روز
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # افزایش به 7 روز
+    
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),      
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+
 }
 
-
-
-
-
-
-
-
+SEARCH_USE_OLLAMA = True  
+SEARCH_OLLAMA_TIMEOUT = 30

@@ -27,21 +27,17 @@ class SmartFeedService:
         if cached:
             return cached
         
-        # دریافت هشتگ‌های پیشنهادی
         if use_ollama:
             recommended_hashtags = self.ollama_service.get_recommended_hashtags()
         else:
             recommended_hashtags = self._get_fallback_hashtags()
         
-        # جستجوی پست‌ها
         posts = self._search_posts_by_hashtags(recommended_hashtags, limit * 2)
         
-        # تکمیل با پست‌های پرطرفدار اگر کافی نبود
         if len(posts) < limit:
             extra_posts = self._get_trending_posts(limit - len(posts))
             posts = list(posts) + list(extra_posts)
         
-        # رتبه‌بندی
         scored_posts = self._rank_posts(posts, recommended_hashtags)
         
         result_posts = scored_posts[offset:offset + limit]
@@ -60,7 +56,6 @@ class SmartFeedService:
         return output
     
     def _search_posts_by_hashtags(self, hashtags, limit):
-        """جستجوی پست‌ها بر اساس هشتگ"""
         if not hashtags:
             return Post.objects.none()
         
@@ -79,7 +74,6 @@ class SmartFeedService:
         ).distinct().order_by('-created_at')[:limit]
     
     def _get_trending_posts(self, limit):
-        """پست‌های پرطرفدار"""
         return Post.objects.filter(
             created_at__gte=datetime.now() - timedelta(days=3),
             is_deleted=False
@@ -109,7 +103,6 @@ class SmartFeedService:
         return [h for h, _ in counter.most_common(10)]
     
     def _rank_posts(self, posts, target_hashtags):
-        """رتبه‌بندی پست‌ها"""
         target_set = set(target_hashtags)
         scored = []
         
