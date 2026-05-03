@@ -6,7 +6,6 @@ from core.models.base_model import BaseModel
 
 
 class Follow(BaseModel):
-    """مدل فالو - کاربر A کاربر B را فالو می‌کند"""
     
     follower = models.ForeignKey(
         settings.AUTH_USER_MODEL,
