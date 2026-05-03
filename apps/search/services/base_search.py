@@ -16,21 +16,27 @@ class BaseSearchService(ABC):
     
     @abstractmethod
     def search_all(self, query, limit=20, offset=0):
+        """جستجوی جهانی"""
         pass
     
     @abstractmethod
     def extract_keywords(self, query):
+        """استخراج کلمات کلیدی از متن جستجو"""
         pass
     
     def search_users(self, query, limit=20):
+        """جستجوی کاربران بر اساس username (تغییر کرده)"""
         if not query or len(query) < 2:
             return []
         
         users = User.objects.filter(
-            Q(username__icontains=query) |
-            Q(phone__icontains=query) |
-            Q(profile__display_name__icontains=query)
+            Q(username__icontains=query)  # اولویت با username
         ).select_related('profile')[:limit]
+        
+        if not users:
+            users = User.objects.filter(
+                Q(profile__display_name__icontains=query)
+            ).select_related('profile')[:limit]
         
         results = []
         for user in users:
@@ -44,6 +50,20 @@ class BaseSearchService(ABC):
             })
         
         return results
+    
+    def search_users_exact(self, username, limit=1):
+        try:
+            user = User.objects.get(username__iexact=username)
+            profile = getattr(user, 'profile', None)
+            return [{
+                'id': str(user.id),
+                'username': user.username,
+                'display_name': profile.display_name if profile else user.username,
+                'profile_image': profile.profile_image.url if profile and profile.profile_image else None,
+                'bio': profile.bio if profile else '',
+            }]
+        except User.DoesNotExist:
+            return []
     
     def search_hashtags(self, query, limit=20):
         if not query or len(query) < 2:
@@ -71,6 +91,8 @@ class BaseSearchService(ABC):
         
         if query:
             search_q |= Q(content__icontains=query)
+            # جستجو در username صاحب پست
+            search_q |= Q(user__username__icontains=query)
         
         if keywords:
             search_q |= Q(post_hashtags__hashtag__name__in=keywords)
