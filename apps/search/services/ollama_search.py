@@ -15,17 +15,12 @@ User = get_user_model()
 
 
 class OllamaSearchService(BaseSearchService):
-    """
-    سرویس جستجوی هوشمند با استفاده از Ollama
-    """
-    
     def __init__(self, request_user=None):
         super().__init__(request_user)
         self._ollama_client = None
         self.use_ollama = getattr(settings, 'SEARCH_USE_OLLAMA', True)
     
     def _get_ollama_client(self):
-        """دریافت کلاینت Ollama"""
         if not self.use_ollama:
             return None
         
@@ -39,7 +34,6 @@ class OllamaSearchService(BaseSearchService):
         return self._ollama_client
     
     def search_all(self, query, limit=20, offset=0):
-        """جستجوی جهانی هوشمند با Ollama"""
         
         cache_key = f"ollama_search_{hash(query)}_{offset}_{limit}"
         cached = cache.get(cache_key)
@@ -63,8 +57,6 @@ class OllamaSearchService(BaseSearchService):
         return results
     
     def extract_keywords(self, query):
-        """استخراج کلمات کلیدی هوشمند با استفاده از Ollama"""
-        
         ollama = self._get_ollama_client()
         
         if not ollama or not self.use_ollama:
@@ -106,7 +98,6 @@ class OllamaSearchService(BaseSearchService):
             return self._simple_extract(query)
     
     def _simple_extract(self, query):
-        """روش ساده استخراج (fallback)"""
         stop_words = {'و', 'به', 'از', 'برای', 'یک', 'این', 'آن', 'با', 'تا', 'در'}
         
         words = re.findall(r'[a-zA-Z0-9_\u0600-\u06FF]+', query)
@@ -115,7 +106,6 @@ class OllamaSearchService(BaseSearchService):
         return keywords[:5]
     
     def search_suggestions(self, query, limit=10):
-        """پیشنهادات لحظه‌ای جستجو"""
         
         if not query or len(query) < 2:
             return {'users': [], 'hashtags': []}
@@ -131,7 +121,6 @@ class OllamaSearchService(BaseSearchService):
             'hashtags': []
         }
         
-        # پیشنهاد کاربران
         users = User.objects.filter(
             Q(username__icontains=query) |
             Q(profile__display_name__icontains=query)
@@ -147,7 +136,6 @@ class OllamaSearchService(BaseSearchService):
                 'id': str(user.id)
             })
         
-        # پیشنهاد هشتگ
         hashtags = Hashtag.objects.filter(
             name__icontains=query.replace('#', '')
         ).order_by('-usage_count')[:5]
