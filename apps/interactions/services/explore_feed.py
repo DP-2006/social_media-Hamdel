@@ -14,18 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 class ExploreFeedService:
-    """
-    فید اکتشاف بر اساس:
-    1. هشتگ‌های مورد علاقه کاربر (از لایک‌ها و کامنت‌ها)
-    2. مرتب‌سازی بر اساس تعاملات (لایک، کامنت، ویو)
-    """
+    # 1. هشتگ‌های مورد علاقه کاربر (از لایک‌ها و کامنت‌ها)
+    # 2. مرتب‌سازی بر اساس تعاملات (لایک، کامنت، ویو)
     
     def __init__(self, user):
         self.user = user
         self._ollama_client = None
     
     def _get_ollama_client(self):
-        """دریافت کلاینت Ollama از اپ ml"""
         if self._ollama_client is None:
             try:
                 from apps.ml.ollama_client import OllamaClient
@@ -35,14 +31,6 @@ class ExploreFeedService:
         return self._ollama_client
     
     def get_explore_feed(self, limit=20, offset=0, use_ollama=True):
-        """
-        دریافت فید اکتشاف
-        
-        Args:
-            limit: تعداد پست‌ها
-            offset: صفحه (پرش)
-            use_ollama: استفاده از Ollama برای تحلیل هوشمندانه‌تر
-        """
         cache_key = f"explore_feed_{self.user.id}_{offset}_{limit}_{use_ollama}"
         cached = cache.get(cache_key)
         
@@ -75,13 +63,6 @@ class ExploreFeedService:
         return output
     
     def _get_favorite_hashtags(self, use_ollama=False):
-        """
-        استخراج هشتگ‌های مورد علاقه کاربر از:
-        - هشتگ‌های پست‌هایی که لایک کرده
-        - هشتگ‌های پست‌هایی که کامنت گذاشته
-        - هشتگ‌های پست‌های خودش
-        """
-        
         hashtags = []
         
         liked_posts = Like.objects.filter(
@@ -123,10 +104,6 @@ class ExploreFeedService:
         return top_hashtags
     
     def _enhance_with_ollama(self, current_hashtags):
-        """
-        استفاده از Ollama برای پیدا کردن هشتگ‌های مرتبط
-        مثلاً اگر کاربر #nature را دارد، پیشنهاد بده #travel, #photography
-        """
         ollama = self._get_ollama_client()
         
         if not ollama:
@@ -157,9 +134,6 @@ class ExploreFeedService:
             return []
     
     def _search_posts_by_hashtags(self, hashtags, limit):
-        """
-        جستجوی پست‌هایی که حداقل یکی از هشتگ‌های مورد علاقه را دارند
-        """
         if not hashtags:
             return Post.objects.none()
         
@@ -186,9 +160,6 @@ class ExploreFeedService:
         return posts[:limit]
     
     def _get_trending_posts(self, limit):
-        """
-        پست‌های پرطرفدار (fallback زمانی که کاربر هیچ هشتگی ندارد)
-        """
         following_users = Follow.objects.filter(
             follower=self.user
         ).values_list('following_id', flat=True)
@@ -207,12 +178,6 @@ class ExploreFeedService:
         ).order_by('-total_engagement')[:limit]
     
     def _rank_posts_by_engagement(self, posts, target_hashtags):
-        """
-        رتبه‌بندی پست‌ها بر اساس:
-        - تعداد لایک‌ها (50% وزن)
-        - تعداد کامنت‌ها (30% وزن)
-        - تعداد هشتگ‌های مشترک (20% وزن)
-        """
         target_set = set(target_hashtags)
         scored = []
         
