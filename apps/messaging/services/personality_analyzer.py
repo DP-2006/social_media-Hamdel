@@ -1,21 +1,78 @@
 # apps/messaging/services/personality_analyzer.py
 
 import logging
+import json
+import re
 from collections import Counter
 from django.db.models import Count
 from django.core.cache import cache
+from django.conf import settings
 
 from apps.posts.models import Post, Like, Comment
 from apps.hashtags.models import PostHashtag
 from apps.follows.models import Follow
 
 logger = logging.getLogger(__name__)
+# اینجا سرویس مستقل از اپ ml برای این 
+#این کارو کردم که اگه خواستم اینو تغیررش بدم خیلی راحت باشه و وابستگی کمی هم داره در ضمن خیلی راحت میتونید این قسمت رو بردارید و یه جای دیگه پیاده سازی کنید مناسب اپتون 
+
+class OllamaClient:
+    """
+    کلاینت ساده اتصال به Ollama
+    """
+    
+    def __init__(self):
+        self.base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
+        self.model = getattr(settings, 'OLLAMA_MODEL', 'gemma3:27b')
+    
+    def generate(self, prompt, temperature=0.7, max_tokens=500):
+        import requests
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature,
+                        "num_predict": max_tokens
+                    }
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "response": response.json().get("response", "")
+                }
+            else:
+                return {"success": False, "error": f"HTTP {response.status_code}"}
+                
+        except requests.exceptions.ConnectionError:
+            return {"success": False, "error": "Ollama در حال اجرا نیست"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def check_health(self):
+        import requests
+        try:
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if response.status_code == 200:
+                models = [m['name'] for m in response.json().get('models', [])]
+                return {
+                    'status': 'healthy',
+                    'models': models,
+                    'model_available': self.model in models
+                }
+            return {'status': 'unhealthy'}
+        except:
+            return {'status': 'unhealthy'}
 
 
 class TargetPersonalityAnalyzer:
-    """
-    تحلیل شخصیت فرد مقابل برای کمک به مکالمه
-    """
     
     def __init__(self, target_user):
         self.target = target_user
@@ -23,22 +80,16 @@ class TargetPersonalityAnalyzer:
     
     def _get_ollama_client(self):
         if self._ollama_client is None:
-            try:
-                from apps.ml.ollama_client import OllamaClient
-                self._ollama_client = OllamaClient()
-            except ImportError:
-                logger.warning("OllamaClient not found")
+            self._ollama_client = OllamaClient()
         return self._ollama_client
     
     def analyze_target(self, force_refresh=False):
-        """
-        تحلیل کامل فرد مقابل
-        """
         cache_key = f"target_analysis_{self.target.id}"
         
         if not force_refresh:
             cached = cache.get(cache_key)
             if cached:
+                logger.info(f"Using cached analysis for user {self.target.id}")
                 return cached
         
         # جمع‌آوری داده‌ها
@@ -47,12 +98,13 @@ class TargetPersonalityAnalyzer:
         # تحلیل با AI
         analysis = self._ai_analysis(data)
         
-        cache.set(cache_key, analysis, 60 * 60 * 6)  # 6 ساعت کش
+        # ذخیره در کش (6 ساعت)
+        cache.set(cache_key, analysis, 60 * 60 * 6)
         
         return analysis
     
     def _collect_data(self):
-        """جمع‌آوری داده‌های عمومی از فرد مقابل"""
+        """جمع‌آوری داده‌های کاربر"""
         
         # پست‌ها
         posts = Post.objects.filter(user=self.target, is_deleted=False)
@@ -91,16 +143,17 @@ class TargetPersonalityAnalyzer:
         }
     
     def _ai_analysis(self, data):
-        """تحلیل با Ollama"""
         
         ollama = self._get_ollama_client()
         
-        if not ollama:
+        # بررسی سلامت Ollama
+        health = ollama.check_health()
+        if health.get('status') != 'healthy':
+            logger.warning("Ollama is not available, using fallback analysis")
             return self._fallback_analysis(data)
         
         prompt = f"""
-        شما یک مشاور روابط و psychologie اجتماعی هستید. 
-        بر اساس اطلاعات زیر، شخصیت فرد را تحلیل کن و راهکارهایی برای ارتباط با او بده:
+        شما یک مشاور روابط اجتماعی هستید. بر اساس اطلاعات زیر، شخصیت فرد را تحلیل کن:
         
         اطلاعات فرد:
         - نام کاربری: {data.get('username')}
@@ -108,17 +161,16 @@ class TargetPersonalityAnalyzer:
         - تعداد پست: {data.get('posts_count', 0)}
         - تعداد فالوور: {data.get('followers_count', 0)}
         - هشتگ‌های پرکاربرد: {data.get('top_hashtags', [])[:5]}
-        - هشتگ‌هایی که لایک کرده: {data.get('liked_hashtags', [])[:5]}
         
         خروجی را به صورت JSON برگردان با این ساختار:
         {{
-            "personality_type": "نوع شخصیت (مثلا: برون‌گرا، درون‌گرا، هنرمند، ماجراجو، حرفه‌ای)",
+            "personality_type": "نوع شخصیت",
             "interests": ["علاقه1", "علاقه2", "علاقه3"],
-            "communication_style": "سبک ارتباطی پیشنهادی (مثلا: صمیمی، رسمی، شوخ، جدی)",
-            "icebreakers": ["موضوع1 برای شروع مکالمه", "موضوع2"],
-            "topics_to_avoid": ["موضوعاتی که بهتر است صحبت نشود"],
-            "best_time_to_message": "بهترین زمان برای پیام دادن",
-            "tips": ["نکته1", "نکته2", "نکته3"]
+            "communication_style": "سبک ارتباطی پیشنهادی",
+            "icebreakers": ["موضوع1", "موضوع2"],
+            "topics_to_avoid": ["موضوع1"],
+            "best_time_to_message": "زمان پیشنهادی",
+            "tips": ["نکته1", "نکته2"]
         }}
         
         فقط JSON را برگردان.
@@ -128,8 +180,6 @@ class TargetPersonalityAnalyzer:
             result = ollama.generate(prompt, temperature=0.7, max_tokens=600)
             
             if result.get('success'):
-                import json
-                import re
                 text = result.get('response', '')
                 match = re.search(r'\{.*\}', text, re.DOTALL)
                 if match:
@@ -146,10 +196,8 @@ class TargetPersonalityAnalyzer:
         
         interests = data.get('top_hashtags', [])[:3]
         
-        personality_type = "برون‌گرا" if data.get('posts_count', 0) > 20 else "درون‌گرا"
-        
         return {
-            "personality_type": personality_type,
+            "personality_type": "برون‌گرا" if data.get('posts_count', 0) > 20 else "درون‌گرا",
             "interests": interests,
             "communication_style": "صمیمی و دوستانه",
             "icebreakers": [f"درباره {interests[0]}" if interests else "درباره علایق مشترک"],
@@ -170,14 +218,13 @@ class MessageSuggestionService:
         self.analyzer = TargetPersonalityAnalyzer(target_user)
     
     def get_opening_message_suggestions(self, count=3):
-        """
-        پیشنهاد پیام‌های شروع کننده مکالمه
-        """
-        analysis = self.analyzer.analyze_target()
+        """پیشنهاد پیام‌های شروع کننده"""
         
+        analysis = self.analyzer.analyze_target()
         ollama = self.analyzer._get_ollama_client()
         
-        if not ollama:
+        health = ollama.check_health()
+        if health.get('status') != 'healthy':
             return self._default_suggestions(analysis)
         
         prompt = f"""
@@ -186,21 +233,16 @@ class MessageSuggestionService:
         اطلاعات فرد مقابل:
         - تیپ شخصیتی: {analysis.get('personality_type')}
         - علایق: {analysis.get('interests', [])}
-        - سبک ارتباطی: {analysis.get('communication_style')}
         
-        لطفاً {count} پیام کوتاه و صمیمی برای شروع مکالمه پیشنهاد بده.
-        پیام‌ها باید دوستانه، محترمانه و متناسب با شخصیت فرد باشند.
+        {count} پیام کوتاه و صمیمی برای شروع مکالمه پیشنهاد بده.
         
-        فقط {count} پیام را در یک لیست JSON برگردان.
-        مثال: ["پیام اول", "پیام دوم", "پیام سوم"]
+        فقط یک لیست JSON برگردان. مثال: ["پیام1", "پیام2"]
         """
         
         try:
             result = ollama.generate(prompt, temperature=0.8, max_tokens=200)
             
             if result.get('success'):
-                import json
-                import re
                 text = result.get('response', '')
                 match = re.search(r'\[.*\]', text, re.DOTALL)
                 if match:
@@ -218,7 +260,7 @@ class MessageSuggestionService:
         interests = analysis.get('interests', [])
         
         suggestions = [
-            "سلام! حال دیدن پست‌هات خوب بود، خیلی باحالن 👋",
+            "سلام! حال دیدن پست‌هات خوب بود 👋",
             "سلام چطوری؟ پروفایل جالبی داری 😊",
         ]
         
@@ -228,20 +270,17 @@ class MessageSuggestionService:
         return suggestions[:3]
     
     def get_reply_suggestion(self, last_message):
-        """
-        پیشنهاد پاسخ به آخرین پیام
-        """
+        
         ollama = self.analyzer._get_ollama_client()
         
-        if not ollama:
-            return "چیز جالبی بگو! 😊"
+        health = ollama.check_health()
+        if health.get('status') != 'healthy':
+            return "چه جالب! بگو بیشتر 😊"
         
         prompt = f"""
         آخرین پیام دریافتی: "{last_message}"
         
-        یک پاسخ طبیعی، دوستانه و مناسب پیشنهاد بده.
-        پاسخ باید کوتاه و صمیمی باشد.
-        
+        یک پاسخ طبیعی، دوستانه و کوتاه پیشنهاد بده.
         فقط متن پاسخ را برگردان، بدون توضیح.
         """
         

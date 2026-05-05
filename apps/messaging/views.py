@@ -17,8 +17,6 @@ from core.pagination import MessagesPagination
 User = get_user_model()
 
 
-# ========== ViewSetهای قبلی ==========
-
 class ConversationViewSet(viewsets.ModelViewSet):
     serializer_class = ConversationSerializer
     permission_classes = [IsAuthenticated]
@@ -27,7 +25,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Conversation.objects.filter(
             participants=self.request.user
-        ).prefetch_related('participants', 'messages')
+        ).prefetch_related('participٍants', 'messages')
 
     def perform_create(self, serializer):
         conversation = serializer.save()
@@ -68,7 +66,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         return Response({'status': 'marked as read'})
 
 
-# ========== دستیار هوشمند مخ‌زنی ==========
 
 class TargetAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
