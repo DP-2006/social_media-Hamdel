@@ -1,26 +1,311 @@
-# apps/interactions/services/explore_feed.py
+# # apps/interactions/services/explore_feed.py
+
+# import logging
+# from collections import Counter
+# from datetime import datetime, timedelta
+# from django.db.models import Count, Q
+# from django.core.cache import cache
+
+# from apps.posts.models import Post, Like, Comment
+# from apps.hashtags.models import PostHashtag
+# from apps.follows.models import Follow
+
+# logger = logging.getLogger(__name__)
+
+
+# class ExploreFeedService:
+#     def __init__(self, user):
+#         self.user = user
+#         self._ollama_client = None
+    
+#     def _get_ollama_client(self):
+#         if self._ollama_client is None:
+#             try:
+#                 from apps.ml.ollama_client import OllamaClient
+#                 self._ollama_client = OllamaClient()
+#             except ImportError:
+#                 logger.warning("OllamaClient not found")
+#         return self._ollama_client
+    
+#     def get_explore_feed(self, limit=20, offset=0, use_ollama=True):
+#         cache_key = f"explore_feed_{self.user.id}_{offset}_{limit}_{use_ollama}"
+#         cached = cache.get(cache_key)
+        
+#         if cached:
+#             return cached
+        
+#         favorite_hashtags = self._get_favorite_hashtags(use_ollama)
+        
+#         if not favorite_hashtags:
+#             posts = self._get_trending_posts(limit * 2)
+#         else:
+#             posts = self._search_posts_by_hashtags(favorite_hashtags, limit * 2)
+        
+#         ranked_posts = self._rank_posts_by_engagement(posts, favorite_hashtags)
+        
+#         result_posts = ranked_posts[offset:offset + limit]
+        
+#         output = {
+#             'posts': [item['post'] for item in result_posts],
+#             'scores': [item['score'] for item in result_posts],
+#             'reasons': [item['reasons'] for item in result_posts],
+#             'used_hashtags': favorite_hashtags,
+#             'used_ollama': use_ollama,
+#             'total_count': len(ranked_posts),
+#             'has_next': offset + limit < len(ranked_posts)
+#         }
+        
+#         cache.set(cache_key, output, 60 * 5)
+        
+#         return output
+    
+#     def _get_favorite_hashtags(self, use_ollama=False):
+#         hashtags = []
+        
+#         liked_posts = Like.objects.filter(
+#             user=self.user
+#         ).values_list('post_id', flat=True)[:100]
+        
+#         liked_hashtags = PostHashtag.objects.filter(
+#             post_id__in=liked_posts
+#         ).values_list('hashtag__name', flat=True)
+#         hashtags.extend(liked_hashtags)
+        
+#         commented_posts = Comment.objects.filter(
+#             user=self.user
+#         ).values_list('post_id', flat=True)[:100]
+        
+#         commented_hashtags = PostHashtag.objects.filter(
+#             post_id__in=commented_posts
+#         ).values_list('hashtag__name', flat=True)
+#         hashtags.extend(commented_hashtags)
+        
+#         my_posts = Post.objects.filter(
+#             user=self.user
+#         ).values_list('id', flat=True)[:50]
+        
+#         my_hashtags = PostHashtag.objects.filter(
+#             post_id__in=my_posts
+#         ).values_list('hashtag__name', flat=True)
+#         hashtags.extend(my_hashtags)
+        
+#         hashtag_counter = Counter(hashtags)
+        
+#         top_hashtags = [h for h, _ in hashtag_counter.most_common(10)]
+        
+#         if use_ollama and top_hashtags:
+#             ai_hashtags = self._enhance_with_ollama(top_hashtags)
+#             if ai_hashtags:
+#                 top_hashtags = list(set(top_hashtags + ai_hashtags))[:15]
+        
+#         return top_hashtags
+    
+#     def _enhance_with_ollama(self, current_hashtags):
+#         ollama = self._get_ollama_client()
+        
+#         if not ollama:
+#             return []
+        
+#         prompt = f"""
+#         کاربر به این هشتگ‌ها علاقه دارد: {', '.join(current_hashtags[:5])}
+        
+#         5 هشتگ مرتبط و مشابه دیگر پیشنهاد بده.
+#         فقط لیست هشتگ‌ها را برگردان، بدون توضیح.
+        
+#         مثال خروجی: nature, travel, photography, adventure, sunset
+#         """
+        
+#         try:
+#             result = ollama.generate(prompt, temperature=0.5, max_tokens=100)
+            
+#             if result.get('success'):
+#                 response = result.get('response', '')
+#                 import re
+#                 hashtags = re.findall(r'[a-zA-Z0-9_\u0600-\u06FF]+', response)
+#                 return [h.lower() for h in hashtags if len(h) > 2][:5]
+            
+#             return []
+            
+#         except Exception as e:
+#             logger.error(f"Ollama enhancement error: {e}")
+#             return []
+    
+#     def _search_posts_by_hashtags(self, hashtags, limit):
+#         if not hashtags:
+#             return Post.objects.none()
+        
+#         following_users = Follow.objects.filter(
+#             follower=self.user
+#         ).values_list('following_id', flat=True)
+        
+#         posts = Post.objects.filter(
+#             post_hashtags__hashtag__name__in=hashtags,
+#             is_deleted=False
+#         ).exclude(
+#             user=self.user  
+#         ).exclude(
+#             user_id__in=following_users 
+#         ).select_related(
+#             'user', 'user__profile'
+#         ).prefetch_related(
+#             'likes', 'comments'
+#         ).annotate(
+#             likes_count=Count('likes'),
+#             comments_count=Count('comments')
+#         ).distinct()
+        
+#         return posts[:limit]
+    
+#     def _get_trending_posts(self, limit):
+#         following_users = Follow.objects.filter(
+#             follower=self.user
+#         ).values_list('following_id', flat=True)
+        
+#         return Post.objects.filter(
+#             created_at__gte=datetime.now() - timedelta(days=3),
+#             is_deleted=False
+#         ).exclude(
+#             user=self.user
+#         ).exclude(
+#             user_id__in=following_users
+#         ).annotate(
+#             likes_count=Count('likes'),
+#             comments_count=Count('comments'),
+#             total_engagement=Count('likes') + Count('comments') * 2
+#         ).order_by('-total_engagement')[:limit]
+    
+#     def _rank_posts_by_engagement(self, posts, target_hashtags):
+#         target_set = set(target_hashtags)
+#         scored = []
+        
+#         for post in posts:
+#             likes_weight = min(post.likes_count, 100) * 0.5     
+#             comments_weight = min(post.comments_count, 50) * 0.6 
+            
+#             post_hashtags = set(
+#                 PostHashtag.objects.filter(post=post).values_list('hashtag__name', flat=True)
+#             )
+#             common_count = len(target_set & post_hashtags)
+#             hashtag_weight = min(common_count * 2, 20)          
+            
+         
+#             final_score = likes_weight + comments_weight + hashtag_weight
+            
+#             reasons = self._get_display_reasons(post, common_count, target_set)
+            
+#             scored.append({
+#                 'post': post,
+#                 'score': round(final_score, 2),
+#                 'reasons': reasons,
+#                 'metrics': {
+#                     'likes': post.likes_count,
+#                     'comments': post.comments_count,
+#                     'common_hashtags': common_count
+#                 }
+#             })
+        
+#         scored.sort(key=lambda x: x['score'], reverse=True)
+        
+#         return scored
+    
+#     def _get_display_reasons(self, post, common_count, target_hashtags):
+#         reasons = []
+        
+#         if common_count > 0:
+#             post_hashtags = set(
+#                 PostHashtag.objects.filter(post=post).values_list('hashtag__name', flat=True)
+#             )
+#             common = list(target_hashtags & post_hashtags)[:2]
+#             for tag in common:
+#                 reasons.append(f"مشابه #{tag}")
+        
+#         if post.likes_count > 50:
+#             reasons.append(f"{post.likes_count} لایک")
+        
+#         if post.comments_count > 20:
+#             reasons.append(f"{post.comments_count} کامنت")
+        
+#         if not reasons:
+#             reasons.append("پیشنهاد برای شما")
+        
+#         return reasons[:3] 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# apps/interactions/services/explore_feed.py (نسخه نهایی)
 
 import logging
+import math
 from collections import Counter
 from datetime import datetime, timedelta
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F, FloatField, Value as V
+from django.db.models.functions import Coalesce, Now, ExtractHour
 from django.core.cache import cache
+from django.utils import timezone
 
 from apps.posts.models import Post, Like, Comment
 from apps.hashtags.models import PostHashtag
 from apps.follows.models import Follow
+from apps.saves.models import SavedPost  # <-- اگر مدل save دارید
 
 logger = logging.getLogger(__name__)
 
 
 class ExploreFeedService:
-    # 1. هشتگ‌های مورد علاقه کاربر (از لایک‌ها و کامنت‌ها)
-    # 2. مرتب‌سازی بر اساس تعاملات (لایک، کامنت، ویو)
+    """
+    سرویس اکسپلور فید با الگوریتم پیشرفته
+    ویژگی‌ها:
+    - پشتیبانی از AI (Ollama)
+    - N+1 Query حل شده
+    - فاکتور تازگی (نیمه‌عمر)
+    - جریمه تنوع (ضد تکرار)
+    - کش چندلایه
+    """
+    
+    # وزن‌های قابل تنظیم (از settings بخوانید)
+    WEIGHTS = {
+        'likes': 1.0,
+        'comments': 2.0,
+        'saves': 5.0,      # اگر مدل save دارید
+        'recency': 0.25,    # وزن تازگی در امتیاز نهایی
+        'hashtag_match': 3.0,
+    }
+    
+    # نیمه‌عمر برای تازگی (ساعت)
+    RECENCY_HALF_LIFE = 48
     
     def __init__(self, user):
         self.user = user
         self._ollama_client = None
-    
+        self._cached_hashtags = None
+        self._cached_following = None
+        self._cached_blocked = None
+        
     def _get_ollama_client(self):
         if self._ollama_client is None:
             try:
@@ -30,102 +315,122 @@ class ExploreFeedService:
                 logger.warning("OllamaClient not found")
         return self._ollama_client
     
+    def _get_following_ids(self):
+        """کش کردن لیست فالو شده‌ها"""
+        if self._cached_following is None:
+            self._cached_following = set(
+                Follow.objects.filter(
+                    follower=self.user, 
+                    is_accepted=True
+                ).values_list('following_id', flat=True)
+            )
+        return self._cached_following
+    
+    def _get_blocked_ids(self):
+        """کش کردن لیست بلاک شده‌ها"""
+        if self._cached_blocked is None:
+            from apps.blocks.models import Block
+            self._cached_blocked = set(
+                Block.objects.filter(
+                    blocker=self.user
+                ).values_list('blocked_id', flat=True)
+            )
+        return self._cached_blocked
+    
     def get_explore_feed(self, limit=20, offset=0, use_ollama=True):
-        cache_key = f"explore_feed_{self.user.id}_{offset}_{limit}_{use_ollama}"
-        cached = cache.get(cache_key)
+        """نسخه نهایی و بهینه شده اکسپلور"""
         
+        cache_key = f"explore_feed_v2_{self.user.id}_{offset}_{limit}_{use_ollama}"
+        cached = cache.get(cache_key)
         if cached:
             return cached
         
+        # 1. دریافت هشتگ‌های مورد علاقه
         favorite_hashtags = self._get_favorite_hashtags(use_ollama)
         
+        # 2. دریافت پست‌های کاندید (با یک کوئری بهینه)
         if not favorite_hashtags:
-            posts = self._get_trending_posts(limit * 2)
+            posts = self._get_trending_posts(limit * 3)
         else:
-            posts = self._search_posts_by_hashtags(favorite_hashtags, limit * 2)
+            posts = self._get_posts_by_hashtags_optimized(favorite_hashtags, limit * 3)
         
-        ranked_posts = self._rank_posts_by_engagement(posts, favorite_hashtags)
+        # 3. رتبه‌بندی با الگوریتم کامل
+        ranked_posts = self._rank_posts_advanced(posts, favorite_hashtags)
         
+        # 4. صفحه‌بندی
         result_posts = ranked_posts[offset:offset + limit]
         
         output = {
             'posts': [item['post'] for item in result_posts],
             'scores': [item['score'] for item in result_posts],
             'reasons': [item['reasons'] for item in result_posts],
-            'used_hashtags': favorite_hashtags,
+            'used_hashtags': favorite_hashtags[:10],
             'used_ollama': use_ollama,
             'total_count': len(ranked_posts),
             'has_next': offset + limit < len(ranked_posts)
         }
         
+        # کش 5 دقیقه‌ای
         cache.set(cache_key, output, 60 * 5)
         
         return output
     
     def _get_favorite_hashtags(self, use_ollama=False):
-        hashtags = []
+        """بهینه شده با یک کوئری واحد"""
         
-        liked_posts = Like.objects.filter(
-            user=self.user
-        ).values_list('post_id', flat=True)[:100]
+        # یک کوئری برای همه تعاملات کاربر
+        user_interactions = PostHashtag.objects.filter(
+            Q(post__likes__user=self.user) |
+            Q(post__comments__user=self.user) |
+            Q(post__user=self.user)
+        ).values_list('hashtag__name', flat=True).distinct()
         
-        liked_hashtags = PostHashtag.objects.filter(
-            post_id__in=liked_posts
-        ).values_list('hashtag__name', flat=True)
-        hashtags.extend(liked_hashtags)
+        hashtag_counter = Counter(user_interactions)
         
-        commented_posts = Comment.objects.filter(
-            user=self.user
-        ).values_list('post_id', flat=True)[:100]
+        # حذف هشتگ‌های بی‌ربط (کمتر از 2 بار تکرار)
+        top_hashtags = [
+            h for h, count in hashtag_counter.most_common(15)
+            if count >= 2
+        ]
         
-        commented_hashtags = PostHashtag.objects.filter(
-            post_id__in=commented_posts
-        ).values_list('hashtag__name', flat=True)
-        hashtags.extend(commented_hashtags)
-        
-        my_posts = Post.objects.filter(
-            user=self.user
-        ).values_list('id', flat=True)[:50]
-        
-        my_hashtags = PostHashtag.objects.filter(
-            post_id__in=my_posts
-        ).values_list('hashtag__name', flat=True)
-        hashtags.extend(my_hashtags)
-        
-        hashtag_counter = Counter(hashtags)
-        
-        top_hashtags = [h for h, _ in hashtag_counter.most_common(10)]
-        
+        # تقویت با AI
         if use_ollama and top_hashtags:
-            ai_hashtags = self._enhance_with_ollama(top_hashtags)
+            ai_hashtags = self._enhance_with_ollama(top_hashtags[:5])
             if ai_hashtags:
-                top_hashtags = list(set(top_hashtags + ai_hashtags))[:15]
+                # ترکیب و حذف تکراری‌ها
+                all_hashtags = list(dict.fromkeys(top_hashtags + ai_hashtags))
+                top_hashtags = all_hashtags[:15]
         
         return top_hashtags
     
     def _enhance_with_ollama(self, current_hashtags):
+        """بهبود یافته با timeout و validation"""
         ollama = self._get_ollama_client()
-        
         if not ollama:
             return []
         
-        prompt = f"""
-        کاربر به این هشتگ‌ها علاقه دارد: {', '.join(current_hashtags[:5])}
-        
-        5 هشتگ مرتبط و مشابه دیگر پیشنهاد بده.
-        فقط لیست هشتگ‌ها را برگردان، بدون توضیح.
-        
-        مثال خروجی: nature, travel, photography, adventure, sunset
-        """
+        prompt = f"""Based on these hashtags: {', '.join(current_hashtags)}
+
+Suggest 5 related hashtags in Persian or English.
+Return ONLY the hashtags separated by commas, no extra text.
+Example: nature, travel, photography, adventure"""
         
         try:
-            result = ollama.generate(prompt, temperature=0.5, max_tokens=100)
+            result = ollama.generate(
+                prompt, 
+                temperature=0.5, 
+                max_tokens=100,
+                timeout=10  # timeout 10 ثانیه
+            )
             
             if result.get('success'):
                 response = result.get('response', '')
+                # پشتیبانی از حروف فارسی و انگلیسی
                 import re
                 hashtags = re.findall(r'[a-zA-Z0-9_\u0600-\u06FF]+', response)
-                return [h.lower() for h in hashtags if len(h) > 2][:5]
+                # حذف هشتگ‌های تکراری و خیلی کوتاه
+                unique_tags = list(dict.fromkeys([h.lower() for h in hashtags if len(h) > 2]))
+                return unique_tags[:5]
             
             return []
             
@@ -133,102 +438,212 @@ class ExploreFeedService:
             logger.error(f"Ollama enhancement error: {e}")
             return []
     
-    def _search_posts_by_hashtags(self, hashtags, limit):
+    def _get_posts_by_hashtags_optimized(self, hashtags, limit):
+        """
+        ✅ حل مشکل N+1 Query
+        یک کوئری با تمام prefetch های لازم
+        """
         if not hashtags:
             return Post.objects.none()
         
-        following_users = Follow.objects.filter(
-            follower=self.user
-        ).values_list('following_id', flat=True)
+        following_ids = self._get_following_ids()
+        blocked_ids = self._get_blocked_ids()
         
+        # یک کوئری واحد با همه چیز
         posts = Post.objects.filter(
             post_hashtags__hashtag__name__in=hashtags,
-            is_deleted=False
+            is_deleted=False,
+            created_at__gte=timezone.now() - timedelta(days=30)  # حداکثر 30 روز
         ).exclude(
-            user=self.user  
+            user=self.user
         ).exclude(
-            user_id__in=following_users 
+            user_id__in=following_ids
+        ).exclude(
+            user_id__in=blocked_ids
         ).select_related(
             'user', 'user__profile'
         ).prefetch_related(
-            'likes', 'comments'
+            'likes',  # برای count لایک
+            'comments',  # برای count کامنت
+            'post_hashtags__hashtag',  # 🔥 کلید حل N+1
         ).annotate(
-            likes_count=Count('likes'),
-            comments_count=Count('comments')
+            likes_count=Count('likes', distinct=True),
+            comments_count=Count('comments', distinct=True),
+            saves_count=Count('saved_by_users', distinct=True),  # اگر مدل save دارید
         ).distinct()
         
         return posts[:limit]
     
     def _get_trending_posts(self, limit):
-        following_users = Follow.objects.filter(
-            follower=self.user
-        ).values_list('following_id', flat=True)
+        """پست‌های ترند 7 روز اخیر"""
+        following_ids = self._get_following_ids()
+        blocked_ids = self._get_blocked_ids()
         
         return Post.objects.filter(
-            created_at__gte=datetime.now() - timedelta(days=3),
+            created_at__gte=timezone.now() - timedelta(days=7),
             is_deleted=False
         ).exclude(
             user=self.user
         ).exclude(
-            user_id__in=following_users
+            user_id__in=following_ids
+        ).exclude(
+            user_id__in=blocked_ids
+        ).select_related(
+            'user', 'user__profile'
+        ).prefetch_related(
+            'post_hashtags__hashtag'
         ).annotate(
-            likes_count=Count('likes'),
-            comments_count=Count('comments'),
-            total_engagement=Count('likes') + Count('comments') * 2
-        ).order_by('-total_engagement')[:limit]
+            likes_count=Count('likes', distinct=True),
+            comments_count=Count('comments', distinct=True),
+            saves_count=Count('saved_by_users', distinct=True),
+            total_engagement=F('likes_count') + F('comments_count') * 2 + F('saves_count') * 5
+        ).order_by('-total_engagement', '-created_at')[:limit]
     
-    def _rank_posts_by_engagement(self, posts, target_hashtags):
+    def _calculate_recency_score(self, post):
+        """
+        محاسبه امتیاز تازگی با تابع نیمه‌عمر
+        پست‌های جدیدتر امتیاز بالاتر
+        """
+        now = timezone.now()
+        age_hours = (now - post.created_at).total_seconds() / 3600
+        
+        # تابع نیمه‌عمر: score = 2^(-age / half_life)
+        score = math.pow(2, -age_hours / self.RECENCY_HALF_LIFE)
+        
+        # پست‌های کمتر از 2 ساعت: امتیاز کامل
+        if age_hours < 2:
+            return 1.0
+        
+        return max(0.05, score)  # حداقل 0.05
+    
+    def _calculate_diversity_penalty(self, post, recent_user_ids):
+        """
+        جریمه تنوع: اگر از یک کاربر زیاد پست دیدیم، امتیاز کم می‌شود
+        """
+        if post.user_id not in recent_user_ids:
+            return 1.0  # بدون جریمه
+        
+        count = recent_user_ids.get(post.user_id, 0)
+        
+        if count == 1:
+            return 0.7  # 30% جریمه
+        elif count == 2:
+            return 0.4  # 60% جریمه
+        else:
+            return 0.1  # 90% جریمه
+    
+    def _rank_posts_advanced(self, posts, target_hashtags):
+        """
+        رتبه‌بندی پیشرفته با تمام فاکتورها
+        """
         target_set = set(target_hashtags)
         scored = []
         
+        # برای جریمه تنوع
+        recent_users = Counter()
+        
         for post in posts:
-            likes_weight = min(post.likes_count, 100) * 0.5     
-            comments_weight = min(post.comments_count, 50) * 0.6 
+            # 1. امتیاز تعاملات (مقیاس لگاریتمی و نرمال)
+            likes_score = math.log2(post.likes_count + 1) * 0.5
+            comments_score = math.log2(post.comments_count + 1) * 1.0
+            saves_score = math.log2(getattr(post, 'saves_count', 0) + 1) * 2.5
             
+            engagement_score = min(1.0, (likes_score + comments_score + saves_score) / 10)
+            
+            # 2. امتیاز هشتگ (بهینه شده بدون کوئری اضافی)
             post_hashtags = set(
-                PostHashtag.objects.filter(post=post).values_list('hashtag__name', flat=True)
+                post.post_hashtags.values_list('hashtag__name', flat=True)
             )
             common_count = len(target_set & post_hashtags)
-            hashtag_weight = min(common_count * 2, 20)          
+            hashtag_score = min(1.0, common_count / 5)  # حداکثر 5 هشتگ مشابه
             
-         
-            final_score = likes_weight + comments_weight + hashtag_weight
+            # 3. امتیاز تازگی
+            recency_score = self._calculate_recency_score(post)
             
-            reasons = self._get_display_reasons(post, common_count, target_set)
+            # 4. جریمه تنوع
+            diversity_penalty = self._calculate_diversity_penalty(post, recent_users)
+            
+            # 5. امتیاز نهایی
+            final_score = (
+                engagement_score * 0.40 +      # 40% تعامل
+                hashtag_score * 0.30 +          # 30% هشتگ
+                recency_score * 0.30            # 30% تازگی
+            ) * diversity_penalty
+            
+            # ذخیره برای جریمه تنوع پست‌های بعدی
+            recent_users[post.user_id] += 1
+            if len(recent_users) > 20:
+                # حذف قدیمی‌ترین‌ها (ساده‌سازی)
+                pass
+            
+            # دلایل نمایش
+            reasons = self._get_display_reasons_advanced(
+                post, common_count, target_set,
+                likes_score, comments_score, recency_score
+            )
             
             scored.append({
                 'post': post,
-                'score': round(final_score, 2),
+                'score': round(final_score * 100, 2),  # مقیاس 0-100
                 'reasons': reasons,
                 'metrics': {
                     'likes': post.likes_count,
                     'comments': post.comments_count,
-                    'common_hashtags': common_count
+                    'common_hashtags': common_count,
+                    'recency_score': round(recency_score, 3),
+                    'engagement_score': round(engagement_score, 3),
                 }
             })
         
+        # مرتب‌سازی نهایی
         scored.sort(key=lambda x: x['score'], reverse=True)
         
         return scored
     
-    def _get_display_reasons(self, post, common_count, target_hashtags):
+    def _get_display_reasons_advanced(self, post, common_count, target_set, 
+                                       likes_score, comments_score, recency_score):
+        """دلایل نمایش به کاربر"""
         reasons = []
         
+        # اولویت: هشتگ مشترک
         if common_count > 0:
             post_hashtags = set(
-                PostHashtag.objects.filter(post=post).values_list('hashtag__name', flat=True)
+                post.post_hashtags.values_list('hashtag__name', flat=True)
             )
-            common = list(target_hashtags & post_hashtags)[:2]
+            common = list(target_set & post_hashtags)[:2]
             for tag in common:
-                reasons.append(f"مشابه #{tag}")
+                reasons.append(f"#{tag}")
         
-        if post.likes_count > 50:
+        # تعامل بالا
+        if likes_score > 3:
             reasons.append(f"{post.likes_count} لایک")
         
-        if post.comments_count > 20:
+        if comments_score > 2:
             reasons.append(f"{post.comments_count} کامنت")
         
-        if not reasons:
-            reasons.append("پیشنهاد برای شما")
+        # پست جدید
+        if recency_score > 0.8:
+            reasons.append("جدید")
+        elif recency_score > 0.5:
+            hours_ago = (timezone.now() - post.created_at).total_seconds() / 3600
+            if hours_ago < 24:
+                reasons.append(f"{int(hours_ago)} ساعت پیش")
         
-        return reasons[:3] 
+        # پیشنهاد هوش مصنوعی
+        if not reasons:
+            reasons.append("پیشنهاد هوشمند")
+        
+        return reasons[:3]
+    
+    def get_explore_metadata(self):
+        """
+        متادیتای اکسپلور برای نمایش در داشبورد
+        """
+        following_count = len(self._get_following_ids())
+        
+        return {
+            'following_count': following_count,
+            'suggested_hashtags': self._get_favorite_hashtags(use_ollama=True)[:10],
+            'algorithm_version': '2.0',
+            'cache_ttl': 300,
+        }
