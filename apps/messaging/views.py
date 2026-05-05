@@ -1,4 +1,3 @@
-
 # apps/messaging/views.py
 
 from django.utils import timezone
@@ -16,9 +15,14 @@ from .serializers import ConversationSerializer, MessageSerializer
 from core.pagination import MessagesPagination
 from apps.blocks.views import BlockedUsersMixin
 
+# ✅ اضافه کردن ایمپورت‌های چت گروهی
+from .models import GroupConversation, GroupMessage, GroupMember
+from .serializers import (
+    GroupConversationSerializer, GroupMessageSerializer,
+    CreateGroupSerializer, AddMemberToGroupSerializer
+)
+
 User = get_user_model()
-
-
 
 class ConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
     serializer_class = ConversationSerializer
@@ -27,7 +31,6 @@ class ConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
 
     def get_queryset(self):
         blocked_ids = self.get_mutually_blocked_ids(self.request.user)
-        
         return Conversation.objects.filter(
             participants=self.request.user
         ).exclude(
@@ -78,8 +81,6 @@ class MessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
         )
         messages.update(is_read=True, read_at=timezone.now())
         return Response({'status': 'marked as read'})
-
-
 
 class StartConversationView(APIView, BlockedUsersMixin):
     permission_classes = [IsAuthenticated]
@@ -240,7 +241,6 @@ class StartConversationWithAIAssistView(APIView, BlockedUsersMixin):
         if request.user == target:
             return Response({"success": False, "error": "نمی‌توانید با خودتان چت کنید"}, status=400)
         
-     
         blocked_ids = self.get_mutually_blocked_ids(request.user)
         if target.id in blocked_ids:
             return Response({
@@ -266,3 +266,184 @@ class StartConversationWithAIAssistView(APIView, BlockedUsersMixin):
                 "suggested_message": "سلام! چطوری؟ از پست‌هات خوشم اومد 😊"
             }
         })
+
+
+
+class GroupConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
+    serializer_class = GroupConversationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return GroupConversation.objects.filter(
+            members=self.request.user,
+            is_active=True
+        ).prefetch_related('members', 'messages')
+    
+    def create(self, request):
+        serializer = CreateGroupSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        group = serializer.save()
+        
+        return Response({
+            "success": True,
+            "data": GroupConversationSerializer(group, context={'request': request}).data
+        }, status=status.HTTP_201_CREATED)
+
+
+class GroupMessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
+    serializer_class = GroupMessageSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        group_id = self.kwargs.get('group_pk')
+        return GroupMessage.objects.filter(
+            conversation_id=group_id,
+            conversation__members=self.request.user
+        ).select_related('sender')
+    
+    def perform_create(self, serializer):
+        group_id = self.kwargs.get('group_pk')
+        group = get_object_or_404(GroupConversation, id=group_id)
+        
+        if not group.members.filter(id=self.request.user.id).exists():
+            raise PermissionError("شما عضو این گروه نیستید")
+        
+        message = serializer.save(
+            conversation=group,
+            sender=self.request.user
+        )
+        
+        group.last_message_at = timezone.now()
+        group.last_message_preview = message.content[:100]
+        group.save(update_fields=['last_message_at', 'last_message_preview'])
+    
+    @action(detail=True, methods=['post'], url_path='mark-read')
+    def mark_read(self, request, pk=None, group_pk=None):
+        message = self.get_object()
+        
+        if message.sender == request.user:
+            return Response({"error": "نمی‌توانید پیام خودتان را مارک کنید"}, status=400)
+        
+        message.mark_as_read(request.user)
+        
+        return Response({
+            "success": True,
+            "message": "پیام به عنوان خوانده شده علامت‌گذاری شد"
+        })
+
+
+class GroupDetailView(APIView, BlockedUsersMixin):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, group_id):
+        group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
+        
+        if not group.members.filter(id=request.user.id).exists():
+            return Response({"error": "شما عضو این گروه نیستید"}, status=403)
+        
+        serializer = GroupConversationSerializer(group, context={'request': request})
+        
+        return Response({
+            "success": True,
+            "data": serializer.data
+        })
+    
+    def delete(self, request, group_id):
+        group = get_object_or_404(GroupConversation, id=group_id)
+        
+        if group.admin != request.user:
+            return Response({"error": "فقط مدیر گروه می‌تواند گروه را حذف کند"}, status=403)
+        
+        group.is_active = False
+        group.save(update_fields=['is_active'])
+        
+        return Response({"success": True, "message": "گروه با موفقیت حذف شد"})
+
+
+class AddMemberToGroupView(APIView, BlockedUsersMixin):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, group_id):
+        group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
+        
+        if group.admin != request.user:
+            return Response({"error": "فقط مدیر گروه می‌تواند عضو اضافه کند"}, status=403)
+        
+        serializer = AddMemberToGroupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user_ids = serializer.validated_data['user_ids']
+        added_users = []
+        
+        for user_id in user_ids:
+            user = get_object_or_404(User, id=user_id)
+            
+            if not self.can_interact(request.user, user):
+                continue
+            
+            if not group.members.filter(id=user_id).exists():
+                group.members.add(user)
+                GroupMember.objects.create(group=group, user=user, role='member')
+                added_users.append(user.username)
+        
+        return Response({
+            "success": True,
+            "message": f"{len(added_users)} کاربر با موفقیت اضافه شدند",
+            "added_users": added_users
+        }, status=status.HTTP_200_OK)
+
+
+class RemoveMemberFromGroupView(APIView, BlockedUsersMixin):
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, group_id, user_id):
+        group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
+        
+        if group.admin != request.user and request.user.id != user_id:
+            return Response({"error": "شما اجازه حذف این عضو را ندارید"}, status=403)
+        
+        target_user = get_object_or_404(User, id=user_id)
+        
+        if not group.members.filter(id=user_id).exists():
+            return Response({"error": "این کاربر عضو گروه نیست"}, status=400)
+        
+        group.members.remove(target_user)
+        GroupMember.objects.filter(group=group, user=target_user).delete()
+        
+        return Response({
+            "success": True,
+            "message": f"{target_user.username} از گروه حذف شد"
+        }, status=status.HTTP_200_OK)
+
+
+class LeaveGroupView(APIView, BlockedUsersMixin):
+    """خروج از گروه"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, group_id):
+        group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
+        
+        if not group.members.filter(id=request.user.id).exists():
+            return Response({"error": "شما عضو این گروه نیستید"}, status=400)
+        
+        if group.admin == request.user and group.members.count() == 1:
+            group.is_active = False
+            group.save(update_fields=['is_active'])
+            return Response({"success": True, "message": "گروه به دلیل خالی شدن حذف شد"})
+        
+        if group.admin == request.user:
+            new_admin = group.members.exclude(id=request.user.id).first()
+            if new_admin:
+                group.admin = new_admin
+                group.save(update_fields=['admin'])
+        
+        group.members.remove(request.user)
+        GroupMember.objects.filter(group=group, user=request.user).delete()
+        
+        return Response({
+            "success": True,
+            "message": "شما از گروه خارج شدید"
+        }, status=status.HTTP_200_OK)
