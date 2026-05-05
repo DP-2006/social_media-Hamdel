@@ -198,3 +198,27 @@ class Comment(models.Model):
 
     # class Meta:
     #     ordering = ['order', 'created_at']
+
+class SavedPost(BaseModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='saved_posts'
+    )
+    post = models.ForeignKey(
+        'Post',
+        on_delete=models.CASCADE,
+        related_name='saved_by_users'
+    )
+    saved_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = [['user', 'post']]  
+        ordering = ['-saved_at']
+        indexes = [
+            models.Index(fields=['user', '-saved_at']),
+            models.Index(fields=['post', '-saved_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} saved post {self.post.id}"
