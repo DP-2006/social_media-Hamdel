@@ -235,22 +235,6 @@ class BatchPredictionResponseSerializer(serializers.Serializer):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# apps/ml/serializers.py (اضافه کردن این سریالایزرها)
-
 from rest_framework import serializers
 
 class PhoneNumberSerializer(serializers.Serializer):
@@ -283,6 +267,83 @@ class UserAnalysisSerializer(serializers.Serializer):
 
 class ComparisonSerializer(serializers.Serializer):
     """سریالایزر مقایسه دو کاربر"""
+    similarity_score = serializers.FloatField()
+    user1 = serializers.DictField()
+    user2 = serializers.DictField()
+    comparison_details = serializers.DictField()
+
+
+
+
+class ExploreFeedQuerySerializer(serializers.Serializer):
+    """Serializer for explore feed query parameters"""
+    limit = serializers.IntegerField(
+        required=False,
+        default=20,
+        min_value=1,
+        max_value=50,
+        help_text="Number of posts to return (max 50)"
+    )
+    offset = serializers.IntegerField(
+        required=False,
+        default=0,
+        min_value=0,
+        help_text="Number of posts to skip for pagination"
+    )
+    use_ollama = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Whether to use Ollama AI for personalized recommendations"
+    )
+
+
+class RefreshExploreSerializer(serializers.Serializer):
+    """Serializer for refresh explore endpoint"""
+    pass  # No parameters needed
+
+
+class HashtagRecommendationsQuerySerializer(serializers.Serializer):
+    """Serializer for hashtag recommendations query parameters"""
+    refresh = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Force refresh recommendations from AI"
+    )
+
+
+class PhoneNumberSerializer(serializers.Serializer):
+    """Serializer for phone number input"""
+    phone_number = serializers.CharField(
+        required=True,
+        max_length=15,
+        help_text="User's phone number"
+    )
+
+
+class BulkAnalysisSerializer(serializers.Serializer):
+    """Serializer for bulk user analysis"""
+    user_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        help_text="List of user IDs to analyze"
+    )
+    include_details = serializers.BooleanField(
+        default=True,
+        required=False,
+        help_text="Whether to return full details"
+    )
+
+
+class UserAnalysisResponseSerializer(serializers.Serializer):
+    """Serializer for user analysis response"""
+    success = serializers.BooleanField()
+    data = serializers.DictField()
+    message = serializers.CharField(required=False)
+    error = serializers.CharField(required=False)
+
+
+class UserComparisonSerializer(serializers.Serializer):
+    """Serializer for comparing two users"""
     similarity_score = serializers.FloatField()
     user1 = serializers.DictField()
     user2 = serializers.DictField()

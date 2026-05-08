@@ -8,22 +8,32 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
 
 from .models import Conversation, Message
-from .serializers import ConversationSerializer, MessageSerializer
+from .serializers import (
+    ConversationSerializer, MessageSerializer,
+    GroupConversationSerializer, GroupMessageSerializer,
+    CreateGroupSerializer, AddMemberToGroupSerializer,
+    StartConversationSerializer, TargetAnalysisSerializer,
+    OpeningMessageSuggestionsSerializer, ReplySuggestionSerializer,
+    IceBreakerTopicsSerializer, ConversationIdSerializer,
+    GroupDetailSerializer, MemberActionSerializer, LeaveGroupSerializer
+)
 from core.pagination import MessagesPagination
 from apps.blocks.views import BlockedUsersMixin
 
 from .models import GroupConversation, GroupMessage, GroupMember
-from .serializers import (
-    GroupConversationSerializer, GroupMessageSerializer,
-    CreateGroupSerializer, AddMemberToGroupSerializer
-)
 
 User = get_user_model()
 
-class ConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
+
+class ConversationViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, BlockedUsersMixin):
+    """
+    ViewSet for managing private conversations
+    """
     serializer_class = ConversationSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = MessagesPagination
@@ -41,7 +51,10 @@ class ConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
         conversation.participants.add(self.request.user)
 
 
-class MessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
+class MessageViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, BlockedUsersMixin):
+    """
+    ViewSet for managing messages in conversations
+    """
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = MessagesPagination
@@ -71,29 +84,36 @@ class MessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
         conversation.last_message_at = timezone.now()
         conversation.save(update_fields=['last_message_at'])
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None, conversation_pk=None):
+        """
+        Mark all messages in conversation as read
+        """
         messages = Message.objects.filter(
             conversation_id=conversation_pk,
             sender__not=request.user,
             is_read=False
         )
         messages.update(is_read=True, read_at=timezone.now())
-        return Response({'status': 'marked as read'})
+        return Response({'status': 'marked as read', 'success': True})
 
-class StartConversationView(APIView, BlockedUsersMixin):
+
+class StartConversationView(GenericAPIView, BlockedUsersMixin):
+    """
+    Start a new conversation with a user
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = StartConversationSerializer
     
     def post(self, request):
-        target_id = request.data.get('target_id')
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        if not target_id:
-            return Response({"success": False, "error": "target_id الزامی است"}, status=400)
-        
+        target_id = serializer.validated_data['target_id']
         target = get_object_or_404(User, id=target_id)
         
         if request.user == target:
-            return Response({"success": False, "error": "نمی‌توانید با خودتان چت کنید"}, status=400)
+            return Response({"success": False, "error": "نمی‌توانید با خودتان چت کنید"}, status=status.HTTP_400_BAD_REQUEST)
         
         blocked_ids = self.get_mutually_blocked_ids(request.user)
         if target.id in blocked_ids:
@@ -122,11 +142,17 @@ class StartConversationView(APIView, BlockedUsersMixin):
         }, status=status.HTTP_200_OK)
 
 
-
-class TargetAnalysisView(APIView, BlockedUsersMixin):
+class TargetAnalysisView(GenericAPIView, BlockedUsersMixin):
+    """
+    Get personality analysis for a target user
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = TargetAnalysisSerializer
     
     def get(self, request, user_id):
+        serializer = self.get_serializer(data={'user_id': user_id})
+        serializer.is_valid(raise_exception=True)
+        
         target = get_object_or_404(User, id=user_id)
         
         blocked_ids = self.get_mutually_blocked_ids(request.user)
@@ -154,12 +180,23 @@ class TargetAnalysisView(APIView, BlockedUsersMixin):
         })
 
 
-class OpeningMessageSuggestionsView(APIView, BlockedUsersMixin):
+class OpeningMessageSuggestionsView(GenericAPIView, BlockedUsersMixin):
+    """
+    Get AI-powered opening message suggestions
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = OpeningMessageSuggestionsSerializer
     
     def get(self, request, user_id):
+        # Validate query parameters
+        query_serializer = self.get_serializer(data={
+            'user_id': user_id,
+            'count': request.query_params.get('count', 3)
+        })
+        query_serializer.is_valid(raise_exception=True)
+        
         target = get_object_or_404(User, id=user_id)
-        count = min(int(request.query_params.get('count', 3)), 5)
+        count = query_serializer.validated_data['count']
         
         blocked_ids = self.get_mutually_blocked_ids(request.user)
         if target.id in blocked_ids:
@@ -169,11 +206,11 @@ class OpeningMessageSuggestionsView(APIView, BlockedUsersMixin):
             }, status=status.HTTP_403_FORBIDDEN)
         
         suggestions = [
-            "سلام! حال دیدن پست‌هات خوب بود 😊",
-            "چطوری؟ پروفایل جالبی داری! 👋",
-            "سلام! چه کار می‌کنی؟ 🌟",
-            "سلام! امیدوارم روز خوبی داشته باشی ✨",
-            "چطوری؟ دوست داشتم باهات آشنا بشم 🤝"
+            "سلام! حال دیدن پست‌هات خوب بود ",
+            "چطوری؟ پروفایل جالبی داری! ",
+            "سلام! چه کار می‌کنی؟ ",
+            "سلام! امیدوارم روز خوبی داشته باشی ",
+            "چطوری؟ دوست داشتم باهات آشنا بشم "
         ][:count]
         
         return Response({
@@ -185,27 +222,38 @@ class OpeningMessageSuggestionsView(APIView, BlockedUsersMixin):
         })
 
 
-class ReplySuggestionView(APIView):
+class ReplySuggestionView(GenericAPIView):
+    """
+    Get AI-powered reply suggestions based on last message
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = ReplySuggestionSerializer
     
     def post(self, request):
-        last_message = request.data.get('last_message', '').strip()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        if not last_message:
-            return Response({"success": False, "error": "last_message الزامی است"}, status=400)
+        last_message = serializer.validated_data['last_message']
         
         return Response({
             "success": True,
             "data": {
-                "suggested_reply": "چه جالب! بگو بیشتر برام 😊"
+                "suggested_reply": "چه جالب! بگو بیشتر برام"
             }
         })
 
 
-class IceBreakerTopicsView(APIView, BlockedUsersMixin):
+class IceBreakerTopicsView(GenericAPIView, BlockedUsersMixin):
+    """
+    Get icebreaker topics for starting conversation
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = TargetAnalysisSerializer
     
     def get(self, request, user_id):
+        serializer = self.get_serializer(data={'user_id': user_id})
+        serializer.is_valid(raise_exception=True)
+        
         target = get_object_or_404(User, id=user_id)
         
         blocked_ids = self.get_mutually_blocked_ids(request.user)
@@ -226,19 +274,22 @@ class IceBreakerTopicsView(APIView, BlockedUsersMixin):
         })
 
 
-class StartConversationWithAIAssistView(APIView, BlockedUsersMixin):
+class StartConversationWithAIAssistView(GenericAPIView, BlockedUsersMixin):
+    """
+    Start conversation with AI-powered message suggestion
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = StartConversationSerializer
     
     def post(self, request):
-        target_id = request.data.get('target_id')
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        if not target_id:
-            return Response({"success": False, "error": "target_id الزامی است"}, status=400)
-        
+        target_id = serializer.validated_data['target_id']
         target = get_object_or_404(User, id=target_id)
         
         if request.user == target:
-            return Response({"success": False, "error": "نمی‌توانید با خودتان چت کنید"}, status=400)
+            return Response({"success": False, "error": "نمی‌توانید با خودتان چت کنید"}, status=status.HTTP_400_BAD_REQUEST)
         
         blocked_ids = self.get_mutually_blocked_ids(request.user)
         if target.id in blocked_ids:
@@ -262,13 +313,15 @@ class StartConversationWithAIAssistView(APIView, BlockedUsersMixin):
             "data": {
                 "conversation_id": conversation.id,
                 "target": target.username,
-                "suggested_message": "سلام! چطوری؟ از پست‌هات خوشم اومد 😊"
+                "suggested_message": "سلام! چطوری؟ از پست‌هات خوشم اومد "
             }
         })
 
 
-
-class GroupConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
+class GroupConversationViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, DestroyModelMixin, BlockedUsersMixin):
+    """
+    ViewSet for managing group conversations
+    """
     serializer_class = GroupConversationSerializer
     permission_classes = [IsAuthenticated]
     
@@ -292,7 +345,10 @@ class GroupConversationViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
         }, status=status.HTTP_201_CREATED)
 
 
-class GroupMessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
+class GroupMessageViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, BlockedUsersMixin):
+    """
+    ViewSet for managing messages in group conversations
+    """
     serializer_class = GroupMessageSerializer
     permission_classes = [IsAuthenticated]
     
@@ -321,10 +377,13 @@ class GroupMessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
     
     @action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None, group_pk=None):
+        """
+        Mark a specific message as read
+        """
         message = self.get_object()
         
         if message.sender == request.user:
-            return Response({"error": "نمی‌توانید پیام خودتان را مارک کنید"}, status=400)
+            return Response({"error": "نمی‌توانید پیام خودتان را مارک کنید"}, status=status.HTTP_400_BAD_REQUEST)
         
         message.mark_as_read(request.user)
         
@@ -334,27 +393,37 @@ class GroupMessageViewSet(viewsets.ModelViewSet, BlockedUsersMixin):
         })
 
 
-class GroupDetailView(APIView, BlockedUsersMixin):
+class GroupDetailView(GenericAPIView, BlockedUsersMixin):
+    """
+    Get or delete group conversation details
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = GroupDetailSerializer
     
     def get(self, request, group_id):
+        serializer = self.get_serializer(data={'group_id': group_id})
+        serializer.is_valid(raise_exception=True)
+        
         group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
         
         if not group.members.filter(id=request.user.id).exists():
-            return Response({"error": "شما عضو این گروه نیستید"}, status=403)
+            return Response({"error": "شما عضو این گروه نیستید"}, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = GroupConversationSerializer(group, context={'request': request})
+        response_serializer = GroupConversationSerializer(group, context={'request': request})
         
         return Response({
             "success": True,
-            "data": serializer.data
+            "data": response_serializer.data
         })
     
     def delete(self, request, group_id):
+        serializer = self.get_serializer(data={'group_id': group_id})
+        serializer.is_valid(raise_exception=True)
+        
         group = get_object_or_404(GroupConversation, id=group_id)
         
         if group.admin != request.user:
-            return Response({"error": "فقط مدیر گروه می‌تواند گروه را حذف کند"}, status=403)
+            return Response({"error": "فقط مدیر گروه می‌تواند گروه را حذف کند"}, status=status.HTTP_403_FORBIDDEN)
         
         group.is_active = False
         group.save(update_fields=['is_active'])
@@ -362,17 +431,24 @@ class GroupDetailView(APIView, BlockedUsersMixin):
         return Response({"success": True, "message": "گروه با موفقیت حذف شد"})
 
 
-class AddMemberToGroupView(APIView, BlockedUsersMixin):
+class AddMemberToGroupView(GenericAPIView, BlockedUsersMixin):
+    """
+    Add members to a group conversation
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = AddMemberToGroupSerializer
     
     def post(self, request, group_id):
+        serializer = self.get_serializer(data={
+            'group_id': group_id,
+            'user_ids': request.data.get('user_ids', [])
+        })
+        serializer.is_valid(raise_exception=True)
+        
         group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
         
         if group.admin != request.user:
-            return Response({"error": "فقط مدیر گروه می‌تواند عضو اضافه کند"}, status=403)
-        
-        serializer = AddMemberToGroupSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+            return Response({"error": "فقط مدیر گروه می‌تواند عضو اضافه کند"}, status=status.HTTP_403_FORBIDDEN)
         
         user_ids = serializer.validated_data['user_ids']
         added_users = []
@@ -380,7 +456,9 @@ class AddMemberToGroupView(APIView, BlockedUsersMixin):
         for user_id in user_ids:
             user = get_object_or_404(User, id=user_id)
             
-            if not self.can_interact(request.user, user):
+            # Check block status
+            blocked_ids = self.get_mutually_blocked_ids(request.user)
+            if user.id in blocked_ids:
                 continue
             
             if not group.members.filter(id=user_id).exists():
@@ -395,19 +473,29 @@ class AddMemberToGroupView(APIView, BlockedUsersMixin):
         }, status=status.HTTP_200_OK)
 
 
-class RemoveMemberFromGroupView(APIView, BlockedUsersMixin):
+class RemoveMemberFromGroupView(GenericAPIView, BlockedUsersMixin):
+    """
+    Remove a member from group conversation
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = MemberActionSerializer
     
     def delete(self, request, group_id, user_id):
+        serializer = self.get_serializer(data={
+            'group_id': group_id,
+            'user_id': user_id
+        })
+        serializer.is_valid(raise_exception=True)
+        
         group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
         
         if group.admin != request.user and request.user.id != user_id:
-            return Response({"error": "شما اجازه حذف این عضو را ندارید"}, status=403)
+            return Response({"error": "شما اجازه حذف این عضو را ندارید"}, status=status.HTTP_403_FORBIDDEN)
         
         target_user = get_object_or_404(User, id=user_id)
         
         if not group.members.filter(id=user_id).exists():
-            return Response({"error": "این کاربر عضو گروه نیست"}, status=400)
+            return Response({"error": "این کاربر عضو گروه نیست"}, status=status.HTTP_400_BAD_REQUEST)
         
         group.members.remove(target_user)
         GroupMember.objects.filter(group=group, user=target_user).delete()
@@ -418,15 +506,21 @@ class RemoveMemberFromGroupView(APIView, BlockedUsersMixin):
         }, status=status.HTTP_200_OK)
 
 
-class LeaveGroupView(APIView, BlockedUsersMixin):
-    """خروج از گروه"""
+class LeaveGroupView(GenericAPIView, BlockedUsersMixin):
+    """
+    Leave a group conversation
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = LeaveGroupSerializer
     
     def post(self, request, group_id):
+        serializer = self.get_serializer(data={'group_id': group_id})
+        serializer.is_valid(raise_exception=True)
+        
         group = get_object_or_404(GroupConversation, id=group_id, is_active=True)
         
         if not group.members.filter(id=request.user.id).exists():
-            return Response({"error": "شما عضو این گروه نیستید"}, status=400)
+            return Response({"error": "شما عضو این گروه نیستید"}, status=status.HTTP_400_BAD_REQUEST)
         
         if group.admin == request.user and group.members.count() == 1:
             group.is_active = False

@@ -1,24 +1,38 @@
 # apps/follows/views.py
 
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status, permissions
+from rest_framework import status, generics
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 
 from .models import Follow
-from .serializers import FollowSerializer, FollowerListSerializer
+from .serializers import (
+    FollowSerializer, 
+    FollowerListSerializer, 
+    FollowingListSerializer,
+    UserIdSerializer,
+    FollowCountSerializer,
+    FollowToggleSerializer
+)
 from apps.blocks.views import BlockedUsersMixin
 
 User = get_user_model()
 
 
-
-class FollowersListView(APIView, BlockedUsersMixin):
+class FollowersListView(GenericAPIView, BlockedUsersMixin):
+    """
+    Get list of followers for a specific user
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserIdSerializer
     
     def get(self, request, user_id):
+        # Validate user_id
+        user_id_serializer = self.get_serializer(data={'user_id': user_id})
+        user_id_serializer.is_valid(raise_exception=True)
+        
         user = get_object_or_404(User, id=user_id)
         
         follows = Follow.objects.filter(
@@ -48,14 +62,18 @@ class FollowersListView(APIView, BlockedUsersMixin):
         }, status=status.HTTP_200_OK)
 
 
-
 class FollowingListView(generics.ListAPIView, BlockedUsersMixin):
+    """
+    Get list of users that a specific user is following
+    """
     permission_classes = [IsAuthenticated]
-    serializer_class = FollowerListSerializer
+    serializer_class = FollowingListSerializer
     
     def get_queryset(self):
         user_id = self.kwargs.get('user_id')
-        user = get_object_or_404(User, id=user_id)
+        # Validate user_id exists
+        if user_id:
+            get_object_or_404(User, id=user_id)
         
         follows = Follow.objects.select_related('following').filter(
             follower_id=user_id
@@ -67,11 +85,18 @@ class FollowingListView(generics.ListAPIView, BlockedUsersMixin):
         return follows
 
 
-
-class FollowUserView(APIView, BlockedUsersMixin):
+class FollowUserView(GenericAPIView, BlockedUsersMixin):
+    """
+    Follow a user
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserIdSerializer
     
     def post(self, request, user_id):
+        # Validate user_id
+        user_id_serializer = self.get_serializer(data={'user_id': user_id})
+        user_id_serializer.is_valid(raise_exception=True)
+        
         follower = request.user
         following = get_object_or_404(User, id=user_id)
         
@@ -105,11 +130,18 @@ class FollowUserView(APIView, BlockedUsersMixin):
         )
 
 
-
-class UnfollowUserView(APIView, BlockedUsersMixin):
+class UnfollowUserView(GenericAPIView, BlockedUsersMixin):
+    """
+    Unfollow a user
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserIdSerializer
     
     def post(self, request, user_id):
+        # Validate user_id
+        user_id_serializer = self.get_serializer(data={'user_id': user_id})
+        user_id_serializer.is_valid(raise_exception=True)
+        
         deleted_count, _ = Follow.objects.filter(
             follower=request.user,
             following_id=user_id
@@ -127,11 +159,18 @@ class UnfollowUserView(APIView, BlockedUsersMixin):
         )
 
 
-
-class FollowToggleView(APIView, BlockedUsersMixin):
+class FollowToggleView(GenericAPIView, BlockedUsersMixin):
+    """
+    Toggle follow status (follow if not following, unfollow if following)
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserIdSerializer
     
     def post(self, request, user_id):
+        # Validate user_id
+        user_id_serializer = self.get_serializer(data={'user_id': user_id})
+        user_id_serializer.is_valid(raise_exception=True)
+        
         target_user = get_object_or_404(User, id=user_id)
         
         if request.user == target_user:
@@ -160,7 +199,7 @@ class FollowToggleView(APIView, BlockedUsersMixin):
                 "message": f"شما {target_user.username} را آنفالو کردید"
             }, status=status.HTTP_200_OK)
         else:
-            follow = Follow.objects.create(
+            Follow.objects.create(
                 follower=request.user,
                 following=target_user
             )
@@ -171,10 +210,18 @@ class FollowToggleView(APIView, BlockedUsersMixin):
             }, status=status.HTTP_201_CREATED)
 
 
-class FollowCountView(APIView, BlockedUsersMixin):
+class FollowCountView(GenericAPIView, BlockedUsersMixin):
+    """
+    Get follower and following counts for a user
+    """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserIdSerializer
     
     def get(self, request, user_id):
+        # Validate user_id
+        user_id_serializer = self.get_serializer(data={'user_id': user_id})
+        user_id_serializer.is_valid(raise_exception=True)
+        
         user = get_object_or_404(User, id=user_id)
         
         blocked_ids = self.get_mutually_blocked_ids(request.user)

@@ -1,25 +1,36 @@
-from django.shortcuts import render
-
-# Create your views here.
 # apps/blocks/views.py
 
-from rest_framework import viewsets, status
+from rest_framework import status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, ListModelMixin
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
 
 from .models import Block
-from .serializers import BlockSerializer, BlockedUserSerializer, BlockRequestSerializer
+from .serializers import (
+    BlockSerializer, 
+    BlockedUserSerializer, 
+    BlockRequestSerializer,
+    BlockUserSerializer,
+    UnblockUserSerializer,
+    ToggleBlockSerializer,
+    CheckBlockSerializer
+)
 
 User = get_user_model()
 
 
-class BlockViewSet(viewsets.ModelViewSet):
-
+class BlockViewSet(GenericViewSet, 
+                    ListModelMixin, 
+                    CreateModelMixin, 
+                    DestroyModelMixin):
+    """
+    ViewSet for managing user blocks
+    """
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
     
@@ -33,7 +44,9 @@ class BlockViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'], url_path='blocked-list')
     def blocked_list(self, request):
-        
+        """
+        Get list of users blocked by current user
+        """
         blocked_users = User.objects.filter(
             blocked_by_set__blocker=request.user
         ).prefetch_related(
@@ -56,10 +69,12 @@ class BlockViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
     
-    @action(detail=False, methods=['post'], url_path='block')
+    @action(detail=False, methods=['post'], url_path='block', serializer_class=BlockUserSerializer)
     def block_user(self, request):
-        
-        serializer = BlockRequestSerializer(data=request.data)
+        """
+        Block a user
+        """
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         user_id = serializer.validated_data['user_id']
@@ -86,7 +101,7 @@ class BlockViewSet(viewsets.ModelViewSet):
         
         if exists:
             return Response(
-                {'status': 'already_blocked', 'message': 'this user had in bloke list in passt'},
+                {'status': 'already_blocked', 'message': 'this user had in block list in past'},
                 status=status.HTTP_200_OK
             )
         
@@ -99,7 +114,7 @@ class BlockViewSet(viewsets.ModelViewSet):
         return Response(
             {
                 'status': 'blocked',
-                'message': f' {user_to_block.username} ',
+                'message': f'{user_to_block.username}',
                 'blocked_user': {
                     'id': user_to_block.id,
                     'username': user_to_block.username,
@@ -109,23 +124,21 @@ class BlockViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
     
-    @action(detail=False, methods=['post'], url_path='unblock')
+    @action(detail=False, methods=['post'], url_path='unblock', serializer_class=UnblockUserSerializer)
     def unblock_user(self, request):
+        """
+        Unblock a user
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        
-        user_id = request.data.get('user_id')
-        
-        if not user_id:
-            return Response(
-                {'error': 'user_id '},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        user_id = serializer.validated_data['user_id']
         
         try:
             user_to_unblock = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response(
-                {'error': 'the '},
+                {'error': 'user not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
         
@@ -138,21 +151,22 @@ class BlockViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     'status': 'unblocked',
-                    'message': f'user {user_to_unblock.username} this user has been unbloked'
+                    'message': f'user {user_to_unblock.username} has been unblocked'
                 },
                 status=status.HTTP_200_OK
             )
         
         return Response(
-            {'status': 'not_blocked', 'message': 'this user has been bloked'},
+            {'status': 'not_blocked', 'message': 'this user was not blocked'},
             status=status.HTTP_200_OK
         )
     
-    @action(detail=False, methods=['post'], url_path='toggle-block')
+    @action(detail=False, methods=['post'], url_path='toggle-block', serializer_class=ToggleBlockSerializer)
     def toggle_block(self, request):
-        
-        
-        serializer = BlockRequestSerializer(data=request.data)
+        """
+        Toggle block status for a user (block if not blocked, unblock if blocked)
+        """
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         user_id = serializer.validated_data['user_id']
@@ -190,22 +204,21 @@ class BlockViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
     
-    @action(detail=False, methods=['get'], url_path='check-block')
+    @action(detail=False, methods=['get'], url_path='check-block', serializer_class=CheckBlockSerializer)
     def check_block(self, request):
+        """
+        Check block status between current user and another user
+        """
+        serializer = self.get_serializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
         
-        user_id = request.query_params.get('user_id')
-        
-        if not user_id:
-            return Response(
-                {'error': 'user_id  is should put in '},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        user_id = serializer.validated_data['user_id']
         
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response(
-                {'error': ' not founds user  '},
+                {'error': 'user not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
         
@@ -219,7 +232,6 @@ class BlockViewSet(viewsets.ModelViewSet):
             blocked=request.user
         ).exists()
         
-
         return Response({
             'user_id': user.id,
             'username': user.username,
@@ -229,9 +241,11 @@ class BlockViewSet(viewsets.ModelViewSet):
         })
 
 
-
 class BlockedUsersMixin:
-    # who one user bloced this user
+    """
+    Mixin for handling blocked users in other views
+    """
+    
     def get_blocked_user_ids(self, user):
         return list(
             Block.objects.filter(blocker=user)

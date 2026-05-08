@@ -1,6 +1,5 @@
-
-
 # apps/ml/views.py
+
 import json
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
@@ -8,20 +7,37 @@ from django.views import View
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from django.db.models import Count
+from django.core.cache import cache
 from .services.ollama_client import OllamaClient
 from rest_framework.views import APIView
 from rest_framework import permissions, status
+from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 
-#from django import model.post
+from .serializers import (
+    ExploreFeedQuerySerializer,
+    RefreshExploreSerializer,
+    HashtagRecommendationsQuerySerializer,
+    PhoneNumberSerializer,
+    BulkAnalysisSerializer,
+    ContentModerationRequestSerializer,
+    TrainModelRequestSerializer,
+    ModelPredictionRequestSerializer,
+    BatchPredictionRequestSerializer
+)
+
 User = get_user_model()
 
 
 @method_decorator(staff_member_required, name='dispatch')
 class AdminAnalyzeUserView(View):
+    """
+    Admin view for analyzing user data with AI
+    """
     
     def get(self, request, user_id):
         try:
-            # پیدا کردن کاربر
+            # Find user
             try:
                 user = User.objects.get(id=user_id)
             except (ValueError, User.DoesNotExist):
@@ -33,13 +49,11 @@ class AdminAnalyzeUserView(View):
                         'error': f'کاربر با آیدی {user_id} یافت نشد'
                     }, status=404)
             
-            # ========== 1. تحلیل فایل‌های کاربر ==========
             from apps.ml.services.file_analyzer import UserFilesAnalyzer
             
             files_analyzer = UserFilesAnalyzer(user)
             files_data = files_analyzer.analyze_all_files()
             
-            # ========== 2. اطلاعات پروفایل ==========
             profile_data = {
                 'full_name': None,
                 'bio': None,
@@ -54,19 +68,26 @@ class AdminAnalyzeUserView(View):
             except:
                 pass
 
-            # ========== 3. آمار پست‌ها ==========
             posts_count = 0
             total_likes_received = 0
+            posts_content = []
+            posts_text = "پستی وجود ندارد"
+
             try:
                 from apps.posts.models import Post
                 posts = Post.objects.filter(user=user)
-                posts_count = posts.count()  # حالا همه پست‌ها رو میگیره، حتی اونایی که فایل ندارن
+                posts_count = posts.count()
                 total_likes_received = sum(p.likes.count() for p in posts)
+                
+                # Get content of text posts
+                for post_item in posts:
+                    if post_item.content:
+                        posts_content.append(f"پست {post_item.id}: {post_item.content[:200]}")
+                posts_text = "\n".join(posts_content[:5])
+                
             except Exception as e:
-                print(f"Error in posts: {e}")            
+                print(f"Error in posts: {e}")
 
-
-            # ========== 4. آمار لایک‌ها ==========
             likes_given = 0
             try:
                 from apps.posts.models import Like
@@ -74,7 +95,6 @@ class AdminAnalyzeUserView(View):
             except:
                 pass
             
-            # ========== 5. آمار کامنت‌ها ==========
             comments_count = 0
             try:
                 from apps.posts.models import Comment
@@ -82,7 +102,6 @@ class AdminAnalyzeUserView(View):
             except:
                 pass
             
-            # ========== 6. آمار فالو ==========
             followers_count = 0
             following_count = 0
             try:
@@ -92,7 +111,6 @@ class AdminAnalyzeUserView(View):
             except:
                 pass
             
-            # ========== 7. هشتگ‌های پرتکرار ==========
             top_hashtags = []
             try:
                 from apps.hashtags.models import PostHashtag
@@ -105,7 +123,6 @@ class AdminAnalyzeUserView(View):
             except:
                 pass
             
-            # ========== 8. سطح فعالیت ==========
             activity_score = (posts_count * 10) + (likes_given * 2) + (comments_count * 3)
             if activity_score > 100:
                 activity_level = "high"
@@ -115,8 +132,8 @@ class AdminAnalyzeUserView(View):
                 activity_level_fa = "متوسط"
             else:
                 activity_level = "low"
-                activity_level_fa = "کم"            
-            # ========== 9. ساخت پرامپت برای AI ==========
+                activity_level_fa = "کم"
+            
             files_content_summary = ""
             if files_data.get('combined_content'):
                 files_content_summary = f"""
@@ -136,7 +153,7 @@ class AdminAnalyzeUserView(View):
             بیوگرافی: {profile_data['bio'] or 'ثبت نشده'}
 
             === محتوای پست‌های کاربر ===
-            {posts_text if 'posts_text' in locals() else 'پستی وجود ندارد'}
+            {posts_text}
 
             === آمار فعالیت در شبکه اجتماعی ===
             تعداد پست‌ها: {posts_count}
@@ -167,12 +184,10 @@ class AdminAnalyzeUserView(View):
             }}
 
             فقط JSON را برگردان، هیچ متن اضافه‌ای قبل یا بعد از آن ننویس."""
-            # ========== 10. فراخوانی مدل Gemma 27B از Ollama ==========
+            
             client = OllamaClient()
             client.model_name = "gemma3:27b"
             result = client.generate(prompt, temperature=0.7, max_tokens=2000)
-            
-            # ========== 11. پردازش پاسخ AI ==========
             ai_analysis = {}
             if result.get('success'):
                 try:
@@ -194,8 +209,7 @@ class AdminAnalyzeUserView(View):
                     'error': result.get('error', 'خطا در ارتباط با Ollama'),
                     'ollama_status': 'مشکل در اتصال'
                 }
-            
-            # ========== 12. پاسخ نهایی همیشه JSON ==========
+
             return JsonResponse({
                 'success': result.get('success', False),
                 'user': {
@@ -231,42 +245,23 @@ class AdminAnalyzeUserView(View):
             }, status=500)
 
 
-
-
-# ========== 3. آمار پست‌ها ==========
-posts_count = 0
-total_likes_received = 0
-posts_content = []
-
-try:
-    from apps.posts.models import Post
-    posts = Post.objects.filter(user=user)
-    posts_count = posts.count()
-    total_likes_received = sum(p.likes.count() for p in posts)
-    
-    # گرفتن محتوای پست‌های متنی
-    for post_item in posts:
-        if post_item.content:
-            posts_content.append(f"پست {post_item.id}: {post_item.content[:200]}")
-    posts_text = "\n".join(posts_content[:5])
-    
-except Exception as e:
-    print(f"Error in posts: {e}")
-    posts_text = "پستی وجود ندارد"
-
-
-
-class ExploreFeedView(APIView):
-
-    #GET /api/ml/explore/?limit=20&offset=0&use_ollama=true
-    
+class ExploreFeedView(GenericAPIView):
+    """
+    Get personalized explore feed with ML-powered recommendations
+    """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ExploreFeedQuerySerializer
     
     def get(self, request):
-
-        limit = min(int(request.query_params.get('limit', 20)), 50)
-        offset = int(request.query_params.get('offset', 0))
-        use_ollama = request.query_params.get('use_ollama', 'true').lower() == 'true'
+        query_serializer = self.get_serializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        
+        limit = query_serializer.validated_data.get('limit', 20)
+        offset = query_serializer.validated_data.get('offset', 0)
+        use_ollama = query_serializer.validated_data.get('use_ollama', True)
+        
+        from .services.smart_feed_service import SmartFeedService
+        from apps.posts.serializers import PostSerializer
         
         feed_service = SmartFeedService(request.user)
         feed_data = feed_service.get_smart_feed(
@@ -275,13 +270,10 @@ class ExploreFeedView(APIView):
             use_ollama=use_ollama
         )
         
-
-        serializer = PostSerializer (
-
+        serializer = PostSerializer(
             feed_data['posts'],
             many=True,
-           context={'request': request}
-
+            context={'request': request}
         )
         
         response_posts = []
@@ -295,6 +287,7 @@ class ExploreFeedView(APIView):
             "data": {
                 "posts": response_posts,
                 "used_hashtags": feed_data['used_hashtags'],
+                "used_ollama": feed_data.get('used_ollama', False),
                 "pagination": {
                     "total_count": feed_data['total_count'],
                     "has_next": feed_data['has_next'],
@@ -305,14 +298,20 @@ class ExploreFeedView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class RefreshExploreView(APIView):
-    
-    #POST /api/ml/explore/refresh/
-
+class RefreshExploreView(GenericAPIView):
+    """
+    Refresh explore feed cache
+    """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RefreshExploreSerializer
     
     def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
         cache.delete_pattern(f"smart_feed_{request.user.id}_*")
+        
+        from .services.ollama_hashtag_service import OllamaHashtagService
         
         ollama_service = OllamaHashtagService(request.user)
         hashtags = ollama_service.get_recommended_hashtags(force_refresh=True)
@@ -324,18 +323,25 @@ class RefreshExploreView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class HashtagRecommendationsView(APIView):
-  
-    #GET /api/ml/recommended-hashtags/?refresh=false
+class HashtagRecommendationsView(GenericAPIView):
+    """
+    Get AI-powered hashtag recommendations
+    """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HashtagRecommendationsQuerySerializer
     
     def get(self, request):
-        refresh = request.query_params.get('refresh', 'false').lower() == 'true'
+        # Validate query parameters
+        query_serializer = self.get_serializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        
+        refresh = query_serializer.validated_data.get('refresh', False)
+        
+        from .services.ollama_hashtag_service import OllamaHashtagService
         
         ollama_service = OllamaHashtagService(request.user)
         hashtags = ollama_service.get_recommended_hashtags(force_refresh=refresh)
         
-
         return Response({
             "success": True,
             "data": {
@@ -346,4 +352,128 @@ class HashtagRecommendationsView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class ContentModerationView(GenericAPIView):
+    """
+    Moderate content using ML model
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ContentModerationRequestSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        from .services.moderation_service import ContentModerationService
+        
+        moderation_service = ContentModerationService()
+        result = moderation_service.moderate(
+            content=serializer.validated_data['content'],
+            content_type=serializer.validated_data['type'],
+            language=serializer.validated_data.get('language', 'fa')
+        )
+        
+        return Response({
+            "success": True,
+            "data": result
+        }, status=status.HTTP_200_OK)
 
+
+class TrainModelView(GenericAPIView):
+    """
+    Train ML models (admin only)
+    """
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = TrainModelRequestSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        from .services.model_trainer import ModelTrainer
+        
+        trainer = ModelTrainer()
+        result = trainer.train_models(
+            model_type=serializer.validated_data['model_type'],
+            force_retrain=serializer.validated_data['force_retrain'],
+            use_gpu=serializer.validated_data['use_gpu'],
+            validation_split=serializer.validated_data['validation_split']
+        )
+        
+        return Response({
+            "success": True,
+            "message": "مدل با موفقیت آموزش داده شد",
+            "result": result
+        }, status=status.HTTP_200_OK)
+
+
+class ModelHealthView(GenericAPIView):
+    """
+    Check health status of all ML models
+    """
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get(self, request):
+        from .services.model_registry import ModelRegistry
+        
+        registry = ModelRegistry()
+        models_status = registry.get_all_models_status()
+        
+        return Response({
+            "success": True,
+            "data": {
+                "models": models_status,
+                "total_models": len(models_status)
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class ModelPredictionView(GenericAPIView):
+    """
+    Make predictions using ML models
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ModelPredictionRequestSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        from .services.prediction_service import PredictionService
+        
+        prediction_service = PredictionService()
+        result = prediction_service.predict(
+            model_type=serializer.validated_data['model_type'],
+            input_data=serializer.validated_data['input_data'],
+            use_cache=serializer.validated_data['use_cache']
+        )
+        
+        return Response({
+            "success": True,
+            "data": result
+        }, status=status.HTTP_200_OK)
+
+
+class BatchPredictionView(GenericAPIView):
+    """
+    Make batch predictions using ML models
+    """
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = BatchPredictionRequestSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        from .services.prediction_service import PredictionService
+        
+        prediction_service = PredictionService()
+        results = prediction_service.batch_predict(
+            model_type=serializer.validated_data['model_type'],
+            inputs=serializer.validated_data['inputs'],
+            use_cache=serializer.validated_data['use_cache']
+        )
+        
+        return Response({
+            "success": True,
+            "data": results
+        }, status=status.HTTP_200_OK)

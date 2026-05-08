@@ -1,138 +1,116 @@
-
 # apps/accounts/serializers.py
-import random
-import re
 from rest_framework import serializers
-from django.utils import timezone
-from datetime import timedelta
-from .models import User, OTP
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from .models import OTP
+
+User = get_user_model()
 
 
-def normalize_phone(phone):
-    if not phone:
-        return None
-    phone = str(phone)
-    cleaned = re.sub(r'\D', '', phone)
-    if cleaned.startswith('0'):
-        cleaned = cleaned[1:]
-    if not cleaned.startswith('98') and len(cleaned) == 10:
-        cleaned = '98' + cleaned
-    return cleaned
-
-
-class RegisterSerializer(serializers.Serializer):
-    
-    phone = serializers.CharField(max_length=20, min_length=10)
+class PhoneSerializer(serializers.Serializer):
+    """Serializer for phone number validation"""
+    phone = serializers.CharField(
+        max_length=15,
+        required=True,
+        help_text="User's phone number (e.g., 09123456789)"
+    )
     
     def validate_phone(self, value):
-        value = normalize_phone(value)
-        
         if not value:
-            raise serializers.ValidationError("phone number isnt valid ")
-        
-        if not value.isdigit():
-            raise serializers.ValidationError("phone number have the numbers carecter plese write the correct forms ")
-        
-        return value
-    
-    def create_otp(self, phone):
-        OTP.objects.filter(phone=phone, is_used=False).update(is_used=True)
-        
-        code = str(random.randint(100000, 999999))
-        
-        otp = OTP.objects.create(
-            phone=phone,
-            code=code,
-            expires_at=timezone.now() + timedelta(minutes=2)
-        )
-        
-        print(f" OTP for {phone}: {code}")
-        return otp
-    
-    def save(self):
-        return self.create_otp(self.validated_data['phone'])
+            raise serializers.ValidationError("Phone number is required")
+        if len(value) < 10:
+            raise serializers.ValidationError("Phone number must be at least 10 digits")
+        # Normalize phone number
+        cleaned = ''.join(filter(str.isdigit, str(value)))
+        if cleaned.startswith('0'):
+            cleaned = cleaned[1:]
+        if not cleaned.startswith('98') and len(cleaned) == 10:
+            cleaned = '98' + cleaned
+        return cleaned
 
 
 class VerifyOTPSerializer(serializers.Serializer):
+    """Serializer for OTP verification"""
+    phone = serializers.CharField(
+        max_length=15,
+        required=True,
+        help_text="User's phone number"
+    )
+    code = serializers.CharField(
+        max_length=6,
+        min_length=4,
+        required=True,
+        help_text="OTP code received via SMS"
+    )
     
-    phone = serializers.CharField(max_length=20)
-    code = serializers.CharField(max_length=6, min_length=6)
-    
-    def validate(self, attrs):
-        phone = attrs.get('phone')
-        code = attrs.get('code')
-        
-        phone = normalize_phone(phone)
-        
-        if not phone:
-            raise serializers.ValidationError({"phone": "the phone number is not valid "})
-        
-        print(f" Searching for phone: {phone}, code: {code}")
-        
-        try:
-            otp = OTP.objects.get(phone=phone, code=code, is_used=False)
-            print(f" OTP found: {otp.code}, expires_at: {otp.expires_at}")
-        except OTP.DoesNotExist:
-            latest = OTP.objects.filter(phone=phone).first()
-            if latest:
-                print(f" Last OTP for {phone}: code={latest.code}, is_used={latest.is_used}, expired={latest.expires_at < timezone.now()}")
-            else:
-                print(f" No OTP found for {phone}")
-            raise serializers.ValidationError({"code":" the code is false or expier it "})
-        
-        if otp.expires_at < timezone.now():
-            print(f" OTP expired: {otp.expires_at} < {timezone.now()}")
-            raise serializers.ValidationError({"code": "the code has been expier it "})
-        
-        attrs['otp'] = otp
-        attrs['phone'] = phone
-        return attrs
-    
-    def save(self):
-        otp = self.validated_data['otp']
-        phone = self.validated_data['phone']
-        
-        otp.is_used = True
-        otp.save()
-        
-        user, created = User.objects.get_or_create(
-            phone=phone,
-            defaults={
-                'username': f"user_{phone[-8:]}",
-                'phone': phone
-            }
-        )
-        
-        return user, created
+    def validate(self, data):
+        if not data.get('phone'):
+            raise serializers.ValidationError({"phone": "Phone number is required"})
+        if not data.get('code'):
+            raise serializers.ValidationError({"code": "OTP code is required"})
+        return data
 
 
-class LoginSerializer(serializers.Serializer):
+class LogoutSerializer(serializers.Serializer):
+    """Serializer for logout"""
+    refresh_token = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Refresh token to blacklist"
+    )
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for User model"""
+    class Meta:
+        model = User
+        fields = [
+            'id', 'phone', 'username', 'email', 
+            'date_joined', 'last_login', 'is_active'
+        ]
+        read_only_fields = ['id', 'date_joined', 'last_login']
+
+
+class UserRegisterResponseSerializer(serializers.Serializer):
+    """Serializer for user registration response"""
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    access_token = serializers.CharField()
+    refresh_token = serializers.CharField()
+    user_id = serializers.CharField()
+    is_new = serializers.BooleanField()
+
+
+class OTPSendResponseSerializer(serializers.Serializer):
+    """Serializer for OTP send response"""
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    code_for_test = serializers.CharField(required=False, allow_null=True)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer for password change"""
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+    confirm_password = serializers.CharField(required=True, write_only=True)
     
-    phone = serializers.CharField(max_length=20)
-    
-    def validate_phone(self, value):
-        value = normalize_phone(value)
-        
-        if not value:
-            raise serializers.ValidationError("the phone number is not valid ")
-        
-        if not User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("not found any user has this phonenumber ")
-        
+    def validate_old_password(self, value):
+        request = self.context.get('request')
+        if request and request.user:
+            if not request.user.check_password(value):
+                raise serializers.ValidationError("Old password is incorrect")
         return value
     
-    def save(self):
-        phone = self.validated_data['phone']
-        
-        OTP.objects.filter(phone=phone, is_used=False).update(is_used=True)
-        
-        code = str(random.randint(100000, 999999))
-        
-        otp = OTP.objects.create(
-            phone=phone,
-            code=code,
-            expires_at=timezone.now() + timedelta(minutes=2)
-        )
-        
-        print(f" Login OTP for {phone}: {code}")
-        return otp
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match"})
+        validate_password(data['new_password'])
+        return data
+
+
+class OTPSerializer(serializers.ModelSerializer):
+    """Serializer for OTP model"""
+    class Meta:
+        model = OTP
+        fields = ['id', 'phone', 'code', 'expires_at', 'is_used', 'created_at']
+        read_only_fields = ['id', 'created_at']

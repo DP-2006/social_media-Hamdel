@@ -1,26 +1,32 @@
-
 # apps/accounts/views.py
-from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from core.services.sms_service import OTPService
 from .models import OTP, User
+from .serializers import (
+    PhoneSerializer, 
+    VerifyOTPSerializer, 
+    LogoutSerializer
+)
 
 User = get_user_model()
 
-class RegisterSendOTPView(APIView):
-    permission_classes = [ AllowAny ]
+class RegisterSendOTPView(GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = PhoneSerializer
     
     def post(self, request):
-        phone = request.data.get('phone')
-        if not phone:
-            return Response({'success': False, 'error': 'the phoen number is must be enter it !!thanks for attention this matter'}, status=400)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data['phone']
         
-        success, message = OTPService.send_otp( phone )
-        #this fields for sample mode mot use the opperations when run the systems for when user cant get the code and then user use the last otp code resived 
+        success, message = OTPService.send_otp(phone)
+        
         code_for_test = None
         if success:
             try:
@@ -34,18 +40,19 @@ class RegisterSendOTPView(APIView):
             'success': success,
             'message': message,
             'code_for_test': code_for_test
-        }, status=200 if success else 400)
+        }, status=status.HTTP_200_OK if success else status.HTTP_400_BAD_REQUEST)
 
 
-class VerifyOTPView(APIView):
+class VerifyOTPView(GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = VerifyOTPSerializer
     
     def post(self, request):
-        phone = request.data.get('phone')
-        code = request.data.get('code')
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        if not phone or not code:
-            return Response({'success': False, 'error': 'the code and phone number muste be enter it ! '}, status=400)
+        phone = serializer.validated_data['phone']
+        code = serializer.validated_data['code']
         
         success, message = OTPService.verify_otp(phone, code)
         
@@ -69,15 +76,17 @@ class VerifyOTPView(APIView):
                 'is_new': created
             })
         
-        return Response({'success': False, 'error': message}, status=400)
-# for deffens the  DOS
-class LoginSendOTPView(APIView):
+        return Response({'success': False, 'error': message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginSendOTPView(GenericAPIView):
     permission_classes = [AllowAny]
+    serializer_class = PhoneSerializer
     
     def post(self, request):
-        phone = request.data.get('phone')
-        if not phone:
-            return Response({'success': False, 'error': 'ples ENTER YOUR PHONE !'}, status=400)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data['phone']
         
         from core.services.sms_service import OTPService as OTPServiceClass
         normalized_phone = OTPServiceClass.normalize_phone(phone)
@@ -85,7 +94,7 @@ class LoginSendOTPView(APIView):
         try:
             user = User.objects.get(phone=normalized_phone)
         except User.DoesNotExist:
-            return Response({'success': False, 'error': 'not found any user and mobile number her '}, status=404)
+            return Response({'success': False, 'error': 'not found any user and mobile number her '}, status=status.HTTP_404_NOT_FOUND)
         
         success, message = OTPService.send_otp(phone)
         
@@ -101,15 +110,19 @@ class LoginSendOTPView(APIView):
             'success': success,
             'message': message,
             'code_for_test': code_for_test
-        }, status=200 if success else 400)
+        }, status=status.HTTP_200_OK if success else status.HTTP_400_BAD_REQUEST)
 
-#this for possition of user or users   when logging in pass (like logging in 2 days ago the user is loggined  )
-class LogoutView(APIView):
+
+class LogoutView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = LogoutSerializer
     
     def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
         try:
-            refresh_token = request.data.get('refresh_token')
+            refresh_token = serializer.validated_data.get('refresh_token')
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
