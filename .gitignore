@@ -73,7 +73,6 @@ celerybeat.pid
 # pytest
 .pytest_cache/
 
-# Node (اگر بعداً فرانت اضافه کردی)
 node_modules/
 
 # Mac
