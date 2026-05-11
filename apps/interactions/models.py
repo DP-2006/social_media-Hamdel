@@ -4,9 +4,6 @@ from django.db import models
 from django.conf import settings
 from core.models.base_model import BaseModel
 class UserPostEngagement(models.Model):
-    """
-    مدل علمی برای ثبت تعامل کاربر با پست
-    """
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE)
     post = models.ForeignKey('posts.Post', on_delete=models.CASCADE)
     
@@ -35,14 +32,7 @@ class UserPostEngagement(models.Model):
             models.Index(fields=['post', '-total_value_score']),
         ]
 
-
-
-
-
-
-
 class UserInteraction(BaseModel):
-    """مدل موجود شما - نگه دار"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='my_interactions')
     target_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='interactions_with_me')
     interaction_type = models.CharField(max_length=20)
@@ -53,10 +43,6 @@ class UserInteraction(BaseModel):
 
 
 class UserPostEngagement(models.Model):
-    """
-    ثبت دقیق تعامل کاربر با هر پست
-    این مدل قلب سیستم فید هوشمند است
-    """
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 

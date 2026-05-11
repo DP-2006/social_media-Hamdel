@@ -40,7 +40,6 @@ class RecommendationService(BaseMLService):
             return []
     
     def _rule_based_recommendation(self, user_id, limit):
-        """توصیه بر اساس قوانین ساده"""
         from apps.posts.models import Post
         from apps.follows.models import Follow
         from apps.hashtags.models import PostHashtag

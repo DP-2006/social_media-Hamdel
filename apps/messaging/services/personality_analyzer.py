@@ -7,6 +7,8 @@ from collections import Counter
 from django.db.models import Count
 from django.core.cache import cache
 from django.conf import settings
+from .ai_client import OllamaClient  
+from apps.accounts.models import PersonalityAnalyzer
 
 from apps.posts.models import Post, Like, Comment
 from apps.hashtags.models import PostHashtag
