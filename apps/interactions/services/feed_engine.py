@@ -39,10 +39,6 @@ class FeedEngine:
         return [post for weight, post in paginated]
     
     def get_explore(self, limit: int = 30, offset: int = 0) -> List:
-        """
-        دریافت پست‌های اکسپلور (غیر از فالو شده‌ها)
-        با تنوع بالا
-        """
         from apps.posts.models import Post
         from apps.follows.models import Follow
         from datetime import datetime, timedelta
