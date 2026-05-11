@@ -7,7 +7,6 @@ from django.db.models import Avg, StdDev, Count, Q
 
 @dataclass
 class StatisticalMetrics:
-    """متریک‌های آماری کامل"""
     mean: float = 0.0
     median: float = 0.0
     variance: float = 0.0
@@ -23,13 +22,9 @@ class StatisticalMetrics:
     is_reliable: bool = False
     
 class StatisticalAnalyzer:
-    """تحلیلگر آماری برای داده‌های تعامل"""
     
     @staticmethod
     def analyze_post_engagement(post_id: str) -> StatisticalMetrics:
-        """
-        تحلیل آماری کامل تعاملات یک پست
-        """
         from apps.interactions.models import UserPostEngagement
         
 
@@ -91,9 +86,6 @@ class StatisticalAnalyzer:
     
     @staticmethod
     def get_user_behavior_profile(user_id: str) -> Dict:
-        """
-        پروفایل رفتاری کاربر بر اساس واریانس و ثبات
-        """
         from apps.interactions.models import UserPostEngagement
         
         view_times = UserPostEngagement.objects.filter(

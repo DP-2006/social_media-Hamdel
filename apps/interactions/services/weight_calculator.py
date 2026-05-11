@@ -6,10 +6,6 @@ from django.utils import timezone
 from .statistical_analyzer import StatisticalAnalyzer, StatisticalMetrics
 
 class WeightCalculator:
-    """
-    محاسبه‌گر علمی وزن پست‌ها
-    هیچ عدد پیش‌فرض بی‌مبنایی اینجا نیست!
-    """
     
     def __init__(self, user, post):
         self.user = user
@@ -18,9 +14,6 @@ class WeightCalculator:
         self.user_profile = StatisticalAnalyzer.get_user_behavior_profile(user.id)
     
     def calculate(self) -> float:
-        """
-        محاسبه وزن نهایی با ترکیب همه فاکتورها
-        """
         from apps.interactions.models import UserPostEngagement
         
         engagement, created = UserPostEngagement.objects.get_or_create(
@@ -65,11 +58,6 @@ class WeightCalculator:
         return final_score
     
     def _calculate_attention_score(self, engagement) -> float:
-        """
-        نمره توجه بر اساس Z-Score واقعی
-        فرمول: Z = (X - μ) / σ
-        سپس تبدیل با sigmoid به [0, 1]
-        """
         if not engagement.view_duration_ms or engagement.view_duration_ms <= 0:
             return 0.0
         
@@ -92,9 +80,6 @@ class WeightCalculator:
         return float(attention)
     
     def _calculate_engagement_score(self, engagement) -> float:
-        """
-        نمره عمق تعامل با وزن‌دهی علمی
-        """
         score = 0.0
         
         if engagement.liked_at:
@@ -120,9 +105,6 @@ class WeightCalculator:
         return min(score, 1.0)
     
     def _get_statistical_weight(self) -> float:
-        """
-        وزن آماری بر اساس کیفیت داده‌های پست
-        """
         if not self.post_stats.is_reliable:
             return 0.2
         
@@ -141,9 +123,6 @@ class WeightCalculator:
         return min(weight, 1.0)
     
     def _get_behavioral_weight(self) -> float:
-        """
-        وزن بر اساس پروفایل رفتاری کاربر
-        """
         consistency = self.user_profile.get('consistency_score', 0.5)
         
         if consistency > 0.7:
@@ -154,9 +133,6 @@ class WeightCalculator:
             return 0.5
     
     def _is_outlier(self, value: int) -> bool:
-        """
-        تشخیص outlier با روش IQR
-        """
         if self.post_stats.sample_size < 4:
             return False
         
@@ -173,9 +149,6 @@ class WeightCalculator:
         return value < lower or value > upper
     
     def _calculate_confidence(self) -> float:
-        """
-        محاسبه نمره اطمینان به این وزن
-        """
         confidence = 0.5
         
         if self.post_stats.is_reliable:
