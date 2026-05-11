@@ -1,4 +1,3 @@
-# apps/interactions/views.py - نسخه نهایی و تمیز
 
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
@@ -7,13 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
 from typing import Dict
-
-# ============================================================
-# Mixin پایه
-# ============================================================
-
 class EngagementMixin:
-    """Mixin برای تعاملات کاربر با پست"""
     
     def get_or_create_engagement(self, user, post_id):
         from apps.interactions.models import UserPostEngagement
@@ -34,12 +27,8 @@ class EngagementMixin:
         return weight
 
 
-# ============================================================
-# Tracking Views
-# ============================================================
 
 class TrackPostView(EngagementMixin, GenericAPIView):
-    """ثبت زمان و تعاملات کاربر با پست"""
     permission_classes = [IsAuthenticated]
     
     def post(self, request, post_id):
@@ -88,7 +77,6 @@ class TrackPostView(EngagementMixin, GenericAPIView):
 
 
 class BulkTrackView(EngagementMixin, GenericAPIView):
-    """Tracking گروهی برای بهینه‌سازی"""
     permission_classes = [IsAuthenticated]
     max_batch_size = 50
     
@@ -132,12 +120,8 @@ class BulkTrackView(EngagementMixin, GenericAPIView):
         })
 
 
-# ============================================================
-# Feed & Explore Views
-# ============================================================
 
 class FeedView(GenericAPIView):
-    """فید هوشمند بر اساس وزن پست‌ها"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
@@ -186,7 +170,6 @@ class FeedView(GenericAPIView):
 
 
 class ExploreView(GenericAPIView):
-    """اکسپلور هوشمند"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
@@ -207,7 +190,6 @@ class ExploreView(GenericAPIView):
             created_at__gte=week_ago, is_private=False
         ).exclude(user_id__in=following_ids).exclude(user=request.user)
         
-        # محاسبه امتیاز و اعمال تنوع
         scored_posts = []
         seen_users = set()
         
@@ -215,7 +197,6 @@ class ExploreView(GenericAPIView):
             if post.user_id in seen_users:
                 continue
             
-            # امتیاز ترکیبی
             popularity = (post.likes_count or 0) + (post.comments_count or 0) * 2
             popularity_score = min(popularity / 500, 0.5)
             
@@ -239,18 +220,12 @@ class ExploreView(GenericAPIView):
         })
 
 
-# ============================================================
-# Compare & Stats Views
-# ============================================================
-
 class ComparePostView(GenericAPIView):
-    """مقایسه وزن یک پست با سایر پست‌ها"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request, post_id):
         from apps.interactions.models import UserPostEngagement
         
-        # وزن پست فعلی
         try:
             current = UserPostEngagement.objects.get(
                 user=request.user, post_id=post_id
@@ -258,8 +233,7 @@ class ComparePostView(GenericAPIView):
             current_weight = current.total_value_score
         except:
             current_weight = 0.0
-        
-        # پست‌های اخیر برای مقایسه
+         
         recent = UserPostEngagement.objects.filter(
             user=request.user
         ).exclude(post_id=post_id).order_by('-updated_at')[:10]
@@ -288,7 +262,6 @@ class ComparePostView(GenericAPIView):
 
 
 class PostStatsView(GenericAPIView):
-    """آمار آماری یک پست"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request, post_id):

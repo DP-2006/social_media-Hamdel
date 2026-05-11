@@ -6,17 +6,10 @@ from .weight_calculator import WeightCalculator
 from .statistical_analyzer import StatisticalAnalyzer
 
 class FeedEngine:
-    """
-    موتور تولید فید هوشمند
-    """
-    
     def __init__(self, user):
         self.user = user
     
     def get_feed(self, limit: int = 20, offset: int = 0) -> List:
-        """
-        دریافت پست‌های فید مرتب شده بر اساس وزن
-        """
         from apps.posts.models import Post
         from apps.follows.models import Follow
         
