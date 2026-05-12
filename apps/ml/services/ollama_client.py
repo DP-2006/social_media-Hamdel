@@ -7,7 +7,7 @@ from django.core.cache import cache
 class OllamaClient:
     
     # FIX THIS LINE - remove hardcoded default
-    def __init__(self, model_name=None):  # Changed from model_name='qwen:7b'
+    def __init__(self, model_name=None): 
         # Read from settings, fallback to gemma3:27b
         self.model_name = model_name or getattr(settings, 'OLLAMA_MODEL', 'gemma3:27b')
         self.base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')

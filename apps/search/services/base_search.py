@@ -11,23 +11,19 @@ User = get_user_model()
 
 
 class BaseSearchService(ABC):
-    """کلاس پایه برای سرویس‌های جستجو"""
     
     def __init__(self, request_user=None):
         self.request_user = request_user
     
     @abstractmethod
     def search_all(self, query, limit=20, offset=0):
-        """جستجوی جهانی"""
         pass
     
     @abstractmethod
     def extract_keywords(self, query):
-        """استخراج کلمات کلیدی از متن جستجو"""
         pass
     
     def search_users(self, query, limit=20):
-        """جستجوی کاربران بر اساس username"""
         if not query or len(query) < 2:
             return []
         
@@ -48,7 +44,6 @@ class BaseSearchService(ABC):
         return results
     
     def search_users_exact(self, username):
-        """جستجوی دقیق با username کامل"""
         try:
             user = User.objects.get(username__iexact=username)
             profile = getattr(user, 'profile', None)
@@ -62,9 +57,7 @@ class BaseSearchService(ABC):
         except User.DoesNotExist:
             return None
     
-    # ✅ این متد را اضافه کن
     def search_hashtags(self, query, limit=20):
-        """جستجوی هشتگ‌ها"""
         if not query or len(query) < 2:
             return []
         
@@ -83,7 +76,6 @@ class BaseSearchService(ABC):
         ]
     
     def search_posts(self, query, keywords=None, limit=20):
-        """جستجوی پست‌ها"""
         if not query and not keywords:
             return []
         

@@ -324,17 +324,6 @@ class StoryViewSet(GenericViewSet,
                     CreateModelMixin, 
                     RetrieveModelMixin, 
                     DestroyModelMixin):
-    """
-    ViewSet for managing stories
-    
-    Provides endpoints for:
-    - Listing active stories from followed users
-    - Creating new stories
-    - Viewing story details
-    - Deleting own stories
-    - Marking stories as viewed
-    - Getting user's own stories
-    """
     permission_classes = [IsAuthenticated]
     pagination_class = StandardPagination
     
@@ -360,11 +349,6 @@ class StoryViewSet(GenericViewSet,
     
     @action(detail=True, methods=['post'], url_path='view')
     def view_story(self, request, pk=None):
-        """
-        Mark a story as viewed by the current user
-        
-        POST: Records that the current user has viewed this story
-        """
         story = self.get_object()
         
         # Don't count user's own views
@@ -434,7 +418,6 @@ class StoryViewSet(GenericViewSet,
         """
         following_ids = request.user.following_set.values_list('following_id', flat=True)
         
-        # Get active stories
         active_stories = Story.objects.filter(
             models.Q(user__in=following_ids) | models.Q(user=request.user),
             expires_at__gt=timezone.now()
@@ -461,11 +444,6 @@ class StoryViewSet(GenericViewSet,
     
     @action(detail=False, methods=['get'], url_path='status')
     def stories_status(self, request):
-        """
-        Get stories status for followed users
-        
-        GET: Returns count of active stories per user
-        """
         following_ids = request.user.following_set.values_list('following_id', flat=True)
         
         # Count active stories per user
@@ -509,11 +487,6 @@ class StoryViewSet(GenericViewSet,
     
     @action(detail=True, methods=['delete'], url_path='delete')
     def delete_story(self, request, pk=None):
-        """
-        Delete a story (soft delete or hard delete)
-        
-        DELETE: Removes the story (only owner can delete)
-        """
         story = self.get_object()
         
         if story.user != request.user:
@@ -531,11 +504,6 @@ class StoryViewSet(GenericViewSet,
     
     @action(detail=True, methods=['get'], url_path='has-viewed')
     def has_viewed(self, request, pk=None):
-        """
-        Check if current user has viewed a story
-        
-        GET: Returns whether the user has viewed this story
-        """
         story = self.get_object()
         
         has_viewed = StoryView.objects.filter(

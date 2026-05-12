@@ -63,7 +63,6 @@ class WeightCalculator:
         
         view_time = engagement.view_duration_ms
         
-        # اگر outlier است، جریمه کن
         if self._is_outlier(view_time):
             engagement.is_outlier = True
             engagement.save(update_fields=['is_outlier'])
@@ -84,7 +83,7 @@ class WeightCalculator:
         
         if engagement.liked_at:
             days_ago = (timezone.now() - engagement.liked_at).days
-            recency = max(0, 1 - days_ago / 30)  # کاهش در 30 روز
+            recency = max(0, 1 - days_ago / 30)  
             score += 0.3 * recency
         
         if engagement.saved_at:

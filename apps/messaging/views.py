@@ -603,6 +603,7 @@ from .serializers import (
 )
 from core.pagination import MessagesPagination
 from apps.blocks.views import BlockedUsersMixin
+from .ai_client import OllamaClient
 
 from .models import GroupConversation, GroupMessage, GroupMember
 
