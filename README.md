@@ -47,7 +47,4 @@
 | 💬 **Direct Messages** | Private chat between users |
 | 🎭 **Anonymous Chat** | AI-powered partner matching *(Coming Soon)* |
 
----
-=======
->>>>>>> a89704db015504211119ed73e7ccee05e6ddc3dd
 
