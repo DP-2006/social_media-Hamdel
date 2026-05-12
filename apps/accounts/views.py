@@ -13,9 +13,10 @@ from .serializers import (
     VerifyOTPSerializer, 
     LogoutSerializer
 )
-
+#یه جیز بگم اینجا ما یه بخش لاگین داریم یه verify داریم 
+#یکی برای این حالت که طرف بار اولشه وارد سیستم شده لاگین میشه   و نمی تونه verify بشه 
+#این بخش بزودی اضافه کنم که اگر طرف نتونست کد otp رو بگیره با آخرین کدی که ارسال شده و منقضی نشده  وارد بشه 
 User = get_user_model()
-
 class RegisterSendOTPView(GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = PhoneSerializer
