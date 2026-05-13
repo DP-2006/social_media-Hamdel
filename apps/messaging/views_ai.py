@@ -1,6 +1,3 @@
-"""
-AI-powered views for messaging app
-"""
 #views_ai.py
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
@@ -8,7 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import GenericAPIView
-
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin
 from .serializers import (
     TargetAnalysisSerializer,
     OpeningMessageSuggestionsSerializer,
@@ -173,3 +170,9 @@ class OpeningMessageSuggestionsView(GenericAPIView, BlockedUsersMixin):
                 "source": source
             }
         })
+
+
+
+
+
+

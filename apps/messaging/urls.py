@@ -37,6 +37,7 @@
 
 # urlpatterns += group_router.urls
 
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ConversationViewSet, MessageViewSet
@@ -71,6 +72,8 @@ urlpatterns += [
     path('groups/<int:group_id>/add-member/', AddMemberToGroupView.as_view(), name='add-member'),
     path('groups/<int:group_id>/remove-member/<int:user_id>/', RemoveMemberFromGroupView.as_view(), name='remove-member'),
     path('groups/<int:group_id>/leave/', LeaveGroupView.as_view(), name='leave-group'),
+    path('start-conversation/', views.StartConversationView.as_view(), name=        'start-conversation'),
+ 
 ]
 
 urlpatterns += group_router.urls
