@@ -11,8 +11,7 @@
 # router.register(r'conversations/(?P<conversation_pk>[0-9a-f-]+)/messages', MessageViewSet, basename='conversation-messages')
 
 # urlpatterns = [
-#     path('', include(router.urls)),
-    
+#     path('', include(router.urls)),=    
 #     path('analyze-target/<str:user_id>/', views.TargetAnalysisView.as_view(), name='analyze-target'),
 #     path('suggestions/opening/<str:user_id>/', views.OpeningMessageSuggestionsView.as_view(), name='opening-suggestions'),
 #     path('suggestions/reply/', views.ReplySuggestionView.as_view(), name='reply-suggestion'),
@@ -38,15 +37,6 @@
 
 # urlpatterns += group_router.urls
 
-
-
-
-
-
-
-
-
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ConversationViewSet, MessageViewSet
@@ -59,7 +49,6 @@ router.register(r'conversations/(?P<conversation_pk>[0-9a-f-]+)/messages', Messa
 urlpatterns = [
     path('', include(router.urls)),
     
-    # ========== AI-Powered Views (از views خودتان) ==========
     path('analyze-target/<int:user_id>/', views.TargetAnalysisView.as_view(), name='analyze-target'),
     path('suggestions/opening/<int:user_id>/', views.OpeningMessageSuggestionsView.as_view(), name='opening-suggestions'),
     path('suggestions/reply/', views.ReplySuggestionView.as_view(), name='reply-suggestion'),
@@ -75,6 +64,7 @@ from .views import (
 group_router = DefaultRouter()
 group_router.register(r'groups', GroupConversationViewSet, basename='group')
 group_router.register(r'groups/(?P<group_pk>[0-9a-f-]+)/messages', GroupMessageViewSet, basename='group-messages')
+
 
 urlpatterns += [
     path('groups/<int:group_id>/detail/', GroupDetailView.as_view(), name='group-detail'),

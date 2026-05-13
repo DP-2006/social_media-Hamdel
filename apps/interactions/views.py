@@ -142,7 +142,7 @@ class FeedView(GenericAPIView):
         posts = Post.objects.filter(
             user_id__in=following_ids, is_private=False
         ).select_related('user__profile')
-        
+         
         scored_posts = []
         for post in posts:
             try:
