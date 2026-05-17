@@ -55,12 +55,14 @@ INSTALLED_APPS = [
     'apps.search',
     #"drf-spectacular"
     'drf_spectacular',
+    'corsheaders'
 
 ]
 
 
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -151,7 +153,7 @@ DATABASES = {
 #     }
 # }
 
-#sql server 
+#sql server for connection in vm
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'sql_server.pyodbc',
@@ -214,7 +216,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.User'
 #SMS_PROVIDER = 'kavenegar' 
-KAVENEGAR_API_KEY = 'YOUR_API_KEY_HERE'
+#KAVENEGAR_API_KEY = 'YOUR_API_KEY_HERE'
 SMS_SENDER = '10008663'
 SMS_PROVIDER = 'fake'  
 
@@ -301,3 +303,20 @@ SIMPLE_JWT = {
 SEARCH_USE_OLLAMA = True  
 SEARCH_OLLAMA_TIMEOUT = 30
 OLLAMA_ENABLED = True
+
+
+
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",   # Live Server
+    "http://localhost:5500",
+    "http://127.0.0.1:3000",  
+]
+
+
+
+
+CORS_ALLOW_ALL_ORIGINS = True  
+CORS_ALLOW_CREDENTIALS = True

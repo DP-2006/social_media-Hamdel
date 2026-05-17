@@ -123,7 +123,7 @@ class TargetPersonalityAnalyzer:
             "posts_count": posts.count(),
             "followers_count": followers_count,
             "following_count": following_count,
-            "top_hashtags": [h['hashtag__name'] for h in hashtags],
+            "top_hsashtag": [h['hashtag__name'] for h in hashtags],
             "liked_hashtags": list(set(liked_hashtags))[:10],
         }
     
@@ -224,18 +224,17 @@ class MessageSuggestionService:
         interests = analysis.get('interests', [])
         
         suggestions = [
-            "سلام! حال دیدن پست‌هات خوب بود 👋",
-            "سلام چطوری؟ پروفایل جالبی داری 😊",
-            "چه روز خوبی! امیدوارم روزت عالی باشه ✨",
+            "👋",
+           "😊",
+            "",
         ]
         
         if interests:
-            suggestions.append(f"سلام! دیدم به {interests[0]} علاقه داری، منم خیلی دوست دارم 🤝")
+            suggestions.append(f"سلام! دیدم به {interests[0]} 🤝")
         
         return suggestions[:count]
     
     def get_reply_suggestion(self, last_message):
-        """پیشنهاد پاسخ به آخرین پیام"""
         
         ollama = self.analyzer._get_ollama_client()
         
@@ -253,9 +252,9 @@ class MessageSuggestionService:
                 pass
         
         static_replies = [
-            "چه جالب! بگو بیشتر برام 😊",
-            "آره دقیقاً! منم همینطور فکر می‌کنم 🤝",
-            "وای چه خوب! برام جالبه 🎯",
-            "چیز جالبی گفتی! ادامه بده 👀"
+            "",
+            "",
+            " ",
+            ""
         ]
         return static_replies[0]

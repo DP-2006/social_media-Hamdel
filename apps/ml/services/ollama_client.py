@@ -6,9 +6,8 @@ from django.core.cache import cache
 
 class OllamaClient:
     
-    # FIX THIS LINE - remove hardcoded default
     def __init__(self, model_name=None): 
-        # Read from settings, fallback to gemma3:27b
+      
         self.model_name = model_name or getattr(settings, 'OLLAMA_MODEL', 'gemma3:27b')
         self.base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
     
@@ -111,10 +110,6 @@ class OllamaClient:
         return result
 
 
-
-
-
-
     def check_health(self):
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
@@ -124,7 +119,7 @@ class OllamaClient:
                     'status': 'healthy',
                     'models': models,
                     'model_available': self.model_name in models,
-                    'message': f"✅ سرویس سالم است. مدل {self.model_name} {'موجود' if self.model_name in models else 'موجود نیست'}"
+                    'message': f" سرویس سالم است. مدل {self.model_name} {'موجود' if self.model_name in models else 'موجود نیست'}"
                 }
             return {
                 'status': 'unhealthy',
@@ -134,7 +129,7 @@ class OllamaClient:
             return {
                 'status': 'unhealthy',
                 'error': 'connection_error',
-                'message': '❌ به سرور Ollama متصل نمی‌شوم. لطفاً دستور "ollama serve" را اجرا کنید.'
+                'message': ' به سرور Ollama متصل نمی‌شوم. لطفاً دستور "ollama serve" را اجرا کنید.'
             }
         except Exception as e:
             return {

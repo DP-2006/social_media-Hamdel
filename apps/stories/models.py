@@ -10,11 +10,15 @@ from core.models.base_model import BaseModel
 
 class Story(BaseModel):
     user = models.ForeignKey(
+
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='stories'
+
     )
-    image = models.ImageField(upload_to='stories/')
+
+    image = models.ImageField(upload_to='stories/',  blank=True, null=True)
+    video = models.FileField(upload_to='stories/videos/', blank=True, null=True)
     caption = models.CharField(max_length=150, blank=True)
     expires_at = models.DateTimeField()  
     is_active = models.BooleanField(default=True)

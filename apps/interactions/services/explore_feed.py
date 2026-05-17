@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 class ExploreFeedService:
     
     WEIGHTS = {
-        'likes': 1.0,
-        'comments': 2.0,
+        
+        'likes': 2.0,
+        'comments': 1.0,
         'saves': 5.0,      
         'recency': 0.25,   
         'hashtag_match': 3.0,

@@ -3,6 +3,7 @@ from django.db import models
 from django.db import models
 from django.conf import settings
 from core.models.base_model import BaseModel
+
 class UserPostEngagement(models.Model):
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE)
     post = models.ForeignKey('posts.Post', on_delete=models.CASCADE)
@@ -10,7 +11,7 @@ class UserPostEngagement(models.Model):
     view_duration_ms = models.IntegerField(
         null=True, blank=True,
         help_text="مدت زمان نگاه کردن به پست به میلی‌ثانیه"
-    )
+    ) 
     scroll_depth = models.IntegerField(default=0, help_text="درصد اسکرول شده")
     visibility_ratio = models.FloatField(default=1.0)
     
@@ -67,7 +68,7 @@ class UserPostEngagement(models.Model):
         default=1.0,
         help_text="نسبت زمانی که پست در viewport بوده"
     )
-    
+
     liked_at = models.DateTimeField(null=True, blank=True)
     saved_at = models.DateTimeField(null=True, blank=True)
     shared_at = models.DateTimeField(null=True, blank=True)

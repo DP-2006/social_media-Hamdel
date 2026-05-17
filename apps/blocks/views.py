@@ -101,7 +101,7 @@ class BlockViewSet(GenericViewSet,
         
         if exists:
             return Response(
-                {'status': 'already_blocked', 'message': 'this user had in block list in past'},
+                {'status': 'already has been blocked', 'message': 'this user had in block list in past'},
                 status=status.HTTP_200_OK
             )
         
@@ -189,7 +189,7 @@ class BlockViewSet(GenericViewSet,
         blocked, created = Block.objects.get_or_create(
             blocker=request.user,
             blocked=user,
-            defaults={'reason': reason}
+            defaults={'reason': reason} # dict show create time not resive time 
         )
         
         if not created:

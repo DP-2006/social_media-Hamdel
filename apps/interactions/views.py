@@ -1,11 +1,13 @@
-
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.utils import timezone
+
 from typing import Dict
+
+
 class EngagementMixin:
     
     def get_or_create_engagement(self, user, post_id):
@@ -25,7 +27,6 @@ class EngagementMixin:
         calculator = WeightCalculator(engagement.user, engagement.post)
         weight = calculator.calculate()
         return weight
-
 
 
 class TrackPostView(EngagementMixin, GenericAPIView):
@@ -77,6 +78,7 @@ class TrackPostView(EngagementMixin, GenericAPIView):
 
 
 class BulkTrackView(EngagementMixin, GenericAPIView):
+    
     permission_classes = [IsAuthenticated]
     max_batch_size = 50
     
@@ -120,7 +122,6 @@ class BulkTrackView(EngagementMixin, GenericAPIView):
         })
 
 
-
 class FeedView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     
@@ -133,16 +134,17 @@ class FeedView(GenericAPIView):
         offset = int(request.GET.get('offset', 0))
         
         following_ids = Follow.objects.filter(
-            follower=request.user, is_accepted=True
+            follower=request.user
         ).values_list('following_id', flat=True)
         
         if not following_ids:
             return Response({'feed': [], 'count': 0})
         
         posts = Post.objects.filter(
-            user_id__in=following_ids, is_private=False
+            user_id__in=following_ids,
+            is_deleted=False
         ).select_related('user__profile')
-         
+        
         scored_posts = []
         for post in posts:
             try:
@@ -151,7 +153,10 @@ class FeedView(GenericAPIView):
                 )
                 weight = engagement.total_value_score
             except:
-                popularity = (post.likes_count or 0) + (post.comments_count or 0) * 2
+             
+                likes_count = post.likes_count if hasattr(post, 'likes_count') else post.likes.count()
+                comments_count = post.comments_count if hasattr(post, 'comments_count') else post.comments.count()
+                popularity = likes_count + comments_count * 2
                 weight = min(0.2 + (popularity / 1000), 0.5)
             
             scored_posts.append((weight, post))
@@ -169,25 +174,28 @@ class FeedView(GenericAPIView):
         })
 
 
+
 class ExploreView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
         from apps.posts.models import Post
         from apps.follows.models import Follow
-        from datetime import datetime, timedelta
+        from datetime import timedelta  
+        from django.utils import timezone  
         
         limit = min(int(request.GET.get('limit', 30)), 100)
         offset = int(request.GET.get('offset', 0))
         
         following_ids = Follow.objects.filter(
-            follower=request.user, is_accepted=True
+            follower=request.user
         ).values_list('following_id', flat=True)
         
-        week_ago = datetime.now() - timedelta(days=7)
+        week_ago = timezone.now() - timedelta(days=7) 
         
         posts = Post.objects.filter(
-            created_at__gte=week_ago, is_private=False
+            created_at__gte=week_ago,
+            is_deleted=False
         ).exclude(user_id__in=following_ids).exclude(user=request.user)
         
         scored_posts = []
@@ -197,10 +205,12 @@ class ExploreView(GenericAPIView):
             if post.user_id in seen_users:
                 continue
             
-            popularity = (post.likes_count or 0) + (post.comments_count or 0) * 2
+            likes_count = post.likes_count if hasattr(post, 'likes_count') else post.likes.count()
+            comments_count = post.comments_count if hasattr(post, 'comments_count') else post.comments.count()
+            popularity = likes_count + comments_count * 2
             popularity_score = min(popularity / 500, 0.5)
             
-            hours_old = (datetime.now() - post.created_at).total_seconds() / 3600
+            hours_old = (timezone.now() - post.created_at).total_seconds() / 3600  # ✅ اصلاح شد
             recency_score = max(0, 1 - (hours_old / 168))
             
             score = (popularity_score * 0.6) + (recency_score * 0.4)

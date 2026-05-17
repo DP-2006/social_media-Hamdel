@@ -1,4 +1,4 @@
-# core/services/sms_service.py - کپی کامل و جایگزین کن
+# core/services/sms_service.py 
 from abc import ABC, abstractmethod
 import random
 import re

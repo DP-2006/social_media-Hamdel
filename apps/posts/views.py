@@ -11,6 +11,7 @@ from .serializers import (
     PostSerializer, PostCreateSerializer, PostUpdateSerializer,
     CommentSerializer, CommentCreateSerializer, SavedPostSerializer,
     SavedPostListSerializer, LikeToggleResponseSerializer,
+    CommentSerializer, CommentCreateSerializer, CommentUpdateSerializer,
     SavePostResponseSerializer, CheckSavedStatusResponseSerializer,
     DeleteCommentResponseSerializer, PostIdSerializer, CommentIdSerializer,
     PostListQuerySerializer
@@ -321,3 +322,32 @@ class UserPostsListView(generics.ListAPIView):
             "success": True,
             "data": serializer.data
         })
+
+class CommentUpdateView(GenericAPIView):
+    """
+    Update a comment (only comment owner can update)
+    
+    PATCH /api/posts/comments/{comment_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = CommentUpdateSerializer
+    
+    def patch(self, request, comment_id):
+        comment = get_object_or_404(Comment, id=comment_id, is_deleted=False)
+        
+        if comment.user != request.user:
+            return Response({
+                "success": False,
+                "error": "شما اجازه ویرایش این کامنت را ندارید"
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(comment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        updated_comment = serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "کامنت با موفقیت ویرایش شد",
+            "data": CommentSerializer(updated_comment, context={'request': request}).data
+        }, status=status.HTTP_200_OK)

@@ -11,7 +11,6 @@ from core.models.base_model import BaseModel
 
 
 class Block(BaseModel):
-    #مدل بلاک کردن مناسب فامیل جماعت 
     
     blocker = models.ForeignKey(#بلاک کننده  )(فاعل )
         settings.AUTH_USER_MODEL,
