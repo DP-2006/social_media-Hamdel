@@ -44,7 +44,7 @@ class PostListCreateView(generics.ListCreateAPIView):
         if hashtag:
             queryset = queryset.filter(post_hashtags__hashtag__name__icontains=hashtag)
         
-        return queryset.select_related('user', 'user__profile').prefetch_related('likes', 'comments')
+        return queryset.select_related('user', 'user__profile').prefetch_related('likes','comments')
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -89,7 +89,7 @@ class LikeToggleView(GenericAPIView):
     serializer_class = PostIdSerializer
     
     def post(self, request, post_id):
-        # Validate post_id
+        #cheake or sel Validate post_id
         serializer = self.get_serializer(data={'post_id': post_id})
         serializer.is_valid(raise_exception=True)
         
@@ -139,7 +139,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
         return CommentSerializer
     
     def perform_create(self, serializer):
-        post_id = self.kwargs.get('post_id')
+        post_id = self.kwargs.get('post_id')  
         post = get_object_or_404(Post, id=post_id)
         
         parent_id = serializer.validated_data.get('parent_id')
@@ -148,7 +148,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
             parent = get_object_or_404(Comment, id=parent_id, post=post)
             # Prevent nested replies (only one level deep)
             if parent.parent:
-                raise serializers.ValidationError({"parent_id": "حداکثر فقط یک سطح ریپلای مجاز است"})
+                raise serializers.ValidationError({"parent_id": "داداشمی مرامی کن جوابشو نده کوتاه بیا تو :"})
         
         serializer.save(user=self.request.user, post=post, parent=parent)
 
@@ -172,13 +172,13 @@ class CommentDeleteView(GenericAPIView):
         # Check permissions: comment owner or post owner can delete
         if comment.user != request.user and comment.post.user != request.user:
             return Response(
-                {"error": "شما اجازه حذف این کامنت را ندارید"}, 
+                {"error": "اون که رفته دیگه هیچ وقت دیلیت نمیشه "}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
         comment.is_deleted = True
         comment.save()
-        return Response({"success": True, "message": "کامنت حذف شد"})
+        return Response({"success": True, "message": "تمیز برات برداشتم حاجی "}) # for delete 
 
 
 class SavePostView(GenericAPIView):

@@ -51,7 +51,7 @@ class PostSerializer(serializers.ModelSerializer):
         return obj.likes.count()
     
     def get_comments_count(self, obj):
-        return obj.comments.count()  #filter(is_deleted=False)removed
+        return obj.comments.count()  #filter(is_deleted=False)has been removed
     
     def get_share_count(self, obj):
         return getattr(obj, 'share_count', 0)

@@ -141,11 +141,11 @@ DATABASES = {
     }
 }
 
-#pstgresql 
+# pstgresql 
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'postgres',hggj
+#         'NAME': 'postgres',
 #         'USER': 'postgres',
 #         'PASSWORD': '123456',
 #         'HOST': '192.168.1.110',
