@@ -2,9 +2,13 @@ from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from apps.interactions.services.weight_calculator import WeightCalculator
 from rest_framework import status
 from django.utils import timezone
-
+from apps.posts.models import Post
+from apps.follows.models import Follow
+from datetime import timedelta  
+       
 from typing import Dict
 
 
@@ -23,7 +27,7 @@ class EngagementMixin:
                 setattr(engagement, key, value)
         engagement.save()
         
-        from apps.interactions.services.weight_calculator import WeightCalculator
+        
         calculator = WeightCalculator(engagement.user, engagement.post)
         weight = calculator.calculate()
         return weight
@@ -179,10 +183,6 @@ class ExploreView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        from apps.posts.models import Post
-        from apps.follows.models import Follow
-        from datetime import timedelta  
-        from django.utils import timezone  
         
         limit = min(int(request.GET.get('limit', 30)), 100)
         offset = int(request.GET.get('offset', 0))

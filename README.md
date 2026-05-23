@@ -1,58 +1,3 @@
-<<<<<<< HEAD
-# social_media-SAFA-
-<div align="center">
-
-# 🧠 Social Network
-
-<img src="https://img.shields.io/badge/Django-5.0-092E20?style=for-the-badge&logo=django&logoColor=white"/>
-<img src="https://img.shields.io/badge/Ollama-0.1.8-000000?style=for-the-badge&logo=ollama&logoColor=white"/>
-<img src="https://img.shields.io/badge/Qwen-7B-4A90E2?style=for-the-badge&logo=ai&logoColor=white"/>
-<img src="https://img.shields.io/badge/WebSocket-00C7B7?style=for-the-badge&logo=socket.io&logoColor=white"/>
-<img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white"/>
-
-<p align="center">
-  <strong>Intelligent Social Network with AI-Powered Anonymous Chat Matching</strong>
-  
-<p align="center">
-  <strong>An SAFA‑Inspired Network built with Django</strong>  
-  <br><br>
-  ⭐ <em>"Better than wen you see!"</em> ⭐
-</p>
-
-</p>
-
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#project-structure">Structure</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#api-endpoints">API</a> •
-  <a href="#debug-log">Debug Log</a> •
-  <a href="#upcoming-features">Coming Soon</a>
-</p>
-
-</div>
-
----
-
-## ✨ Features
-
-| Category | Capability |
-|----------|------------|
-| 👤 **Authentication** | OTP Registration/Login, JWT Tokens |
-| 📝 **Posts** | Create, Edit, Delete, Like, Comment |
-| 🔍 **Hashtags** | Advanced hashtag search |
-| 🤖 **AI Intelligence** | Post & User analysis with Qwen 7B and gemma:27b |
-| 📊 **User Analytics** | Behavior pattern recognition |
-| ✅ **Health Check** | Ollama & Database status |
-| 💬 **Direct Messages** | Private chat between users |
-| 🎭 **Anonymous Chat** | AI-powered partner matching *(Coming Soon)* |
-
----
-
-## 🏗️ Project Structure
-═══════════════════════════════════════════════════════════════════════════════
-                          🚀 SAFA - SOCIAL NETWORK BACKEND
-═══════════════════════════════════════════════════════════════════════════════
 
 <div align="center">
 
@@ -96,9 +41,8 @@ everything from OTP authentication to intelligent conversation starters.
 
 > "Strong, scalable, and smart — just like your next big idea."
 
-───────────────────────────────────────────────────────────────────────────────
+
 ✨ FEATURES
-───────────────────────────────────────────────────────────────────────────────
 
 | Category          | Capability                                      |
 |-------------------|-------------------------------------------------|
@@ -114,9 +58,7 @@ everything from OTP authentication to intelligent conversation starters.
 | 🔒 Block System   | Two-way blocking                                |
 | 🔍 Smart Search   | Users, posts, hashtags                          |
 
-───────────────────────────────────────────────────────────────────────────────
 🏗️ PROJECT STRUCTURE
-───────────────────────────────────────────────────────────────────────────────
 
 social_media-SAFA/
 ├── apps/
@@ -138,9 +80,7 @@ social_media-SAFA/
 ├── manage.py
 └── requirements.txt
 
-───────────────────────────────────────────────────────────────────────────────
 🚀 INSTALLATION
-───────────────────────────────────────────────────────────────────────────────
 
 Prerequisites:
 - Python 3.10+
@@ -198,18 +138,109 @@ JWT Settings:
 ACCESS_TOKEN_LIFETIME=5
 REFRESH_TOKEN_LIFETIME=1
 
-───────────────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# README Section
+
+## Ollama AI Integration
+
+### Model Installation
+
+Install the desired model using Ollama. We currently recommend the **Qwen 2.7B** model.
+
+> ⚠️ **Note:** You may encounter issues such as lack of image processing support with certain models.
+
+### Configuration
+
+To change the model or adjust additional settings:
+
+1. Navigate to `app ml → service → ollama_client.py`
+2. Modify the model and port settings as needed
+
+For **hashtag** and **direct messaging** sections, follow the same approach in the `service` directory.
+
+> ⚠️ **Important:** Ensure the required port is open in your firewall before running the application.
+
+### Ollama Explore (Temporarily Disabled)
+
+The Ollama Explore feature is currently **paused** due to server execution issues. To get started:
+
+1. Go to the `serializer` in `ml` app
+2. Enable `interaction service`
+
+> 💡 **Note:** Services operate independently across all sections, making them reusable in other development projects. All existing apps will be updated accordingly in the near future.
+
+### API Development
+
+Python developers can write custom `serializers` and `views` to create API endpoints. This feature will be added by the development team soon.
+
+> 🚀 **Good News:** The system works without Ollama Explore, which is great for enthusiasts who want to experiment!
+
+### Database Support
+
+This system supports **SQL** and **PostgreSQL** databases. Configuration is available in `config → setting`.
+
+> ⚠️ **Note:** The current databases do not utilize a multi-tenant system. Please keep this in mind when referencing the codebase.
+
+### AI Learning System
+
+The system performs **gradual AI learning** through Ollama, albeit in a limited capacity. The goal is to leverage Ollama's capabilities effectively.
+
+> ⚠️ **Important:** AI response quality depends entirely on the model and its training. **Do not rely solely on AI outputs** — errors are likely to occur!
+
+---
+
+## Contributing
+
+We welcome suggestions, corrections, and feedback from all enthusiasts in this field. Your input is greatly appreciated! 🙏
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 📡 API ENDPOINTS
-───────────────────────────────────────────────────────────────────────────────
 
 Base URL: http://127.0.0.1:8000/api/
 
 Authentication Header:
 Authorization: Bearer <your_access_token>
 
-═══════════════════════════════════════════════════════════════════════════════
 🔐 ACCOUNTS (5 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 POST   /api/accounts/register/send-otp/     Send OTP for registration
 POST   /api/accounts/register/verify/       Verify OTP & register
@@ -217,17 +248,17 @@ POST   /api/accounts/login/send-otp/        Send OTP for login
 POST   /api/accounts/login/verify/          Verify OTP & get token
 POST   /api/accounts/logout/                Logout user
 
-═══════════════════════════════════════════════════════════════════════════════
+
 👤 PROFILES (3 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 GET    /api/profiles/me/                    Get my profile
 PATCH  /api/profiles/me/                    Update my profile
 GET    /api/profiles/{user_id}/             Get user profile
 
-═══════════════════════════════════════════════════════════════════════════════
+
 📝 POSTS (11 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 GET    /api/posts/feed/                     Main feed
 GET    /api/posts/explore/                  Explore feed (AI-powered)
@@ -241,26 +272,25 @@ DELETE /api/posts/{id}/like/                Unlike post
 POST   /api/posts/{id}/save/                Save post
 GET    /api/posts/saved/                    Saved posts list
 
-═══════════════════════════════════════════════════════════════════════════════
+
 💬 COMMENTS (3 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 GET    /api/posts/{id}/comments/            Get comments
 POST   /api/posts/{id}/comments/            Add comment
 DELETE /api/posts/comments/{id}/            Delete comment
 
-═══════════════════════════════════════════════════════════════════════════════
+
 👥 FOLLOWS (4 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 POST   /api/follows/toggle/{user_id}/       Follow/Unfollow
 GET    /api/follows/users/{id}/followers/   Followers list
 GET    /api/follows/users/{id}/following/   Following list
 GET    /api/follows/users/{id}/counts/      Follow stats
 
-═══════════════════════════════════════════════════════════════════════════════
+
 📸 STORIES (5 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
 
 POST   /api/stories/                        Create story
 GET    /api/stories/my/                     My stories
@@ -268,9 +298,9 @@ GET    /api/stories/following/              Following stories
 POST   /api/stories/{id}/view/              Mark as viewed
 DELETE /api/stories/{id}/delete/            Delete story
 
-═══════════════════════════════════════════════════════════════════════════════
+
 💌 MESSAGING (6 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 GET    /api/messages/conversations/         List conversations
 POST   /api/messages/conversations/         Create conversation
@@ -279,9 +309,9 @@ POST   /api/messages/conversations/{id}/messages/ Send message
 GET    /api/messages/analyze-target/{user_id}/ AI user analysis
 GET    /api/messages/suggestions/opening/{user_id}/ AI message suggestions
 
-═══════════════════════════════════════════════════════════════════════════════
+
 🔍 SEARCH (5 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 GET    /api/search/?q={query}               Global search
 GET    /api/search/user/@{username}/        Exact user search
@@ -289,29 +319,29 @@ GET    /api/search/users/?q={query}         Search users
 GET    /api/search/posts/?q={query}         Search posts
 GET    /api/search/hashtags/?q={query}      Search hashtags
 
-═══════════════════════════════════════════════════════════════════════════════
+
 🤖 AI/ML (4 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 GET    /api/ml/health/                      AI service health
 GET    /api/ml/users/{id}/analyze/          Analyze user
 GET    /api/ml/explore/                     AI recommendations
 GET    /api/ml/recommended-hashtags/        Hashtag suggestions
 
-═══════════════════════════════════════════════════════════════════════════════
+
 🚫 BLOCKS (2 endpoints)
-═══════════════════════════════════════════════════════════════════════════════
+
 
 POST   /api/blocks/toggle/{user_id}/        Block/Unblock
 GET    /api/blocks/blocked/                 Blocked users list
 
-───────────────────────────────────────────────────────────────────────────────
-Total: 48 API Endpoints | 43 Require Authentication
-───────────────────────────────────────────────────────────────────────────────
 
-───────────────────────────────────────────────────────────────────────────────
+Total: 48 API Endpoints | 43 Require Authentication
+
+
+
 🤖 AI INTEGRATION (OLLAMA)
-───────────────────────────────────────────────────────────────────────────────
+
 
 Setup Ollama:
 
@@ -392,9 +422,9 @@ curl -X POST http://127.0.0.1:8000/api/posts/ \
 curl -X GET http://127.0.0.1:8000/api/posts/feed/ \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-───────────────────────────────────────────────────────────────────────────────
+
 🐛 DEBUG LOG & KNOWN ISSUES
-───────────────────────────────────────────────────────────────────────────────
+
 
 Current Status:
 
@@ -418,9 +448,9 @@ python manage.py runserver --verbosity 3
 # Database shell
 python manage.py dbshell
 
-───────────────────────────────────────────────────────────────────────────────
+
 📊 DATABASE SCHEMA
-───────────────────────────────────────────────────────────────────────────────
+
 
 Key Models:
 
@@ -473,9 +503,9 @@ Message
 
 Note: All primary keys use UUID for security.
 
-───────────────────────────────────────────────────────────────────────────────
+
 🎯 UPCOMING FEATURES
-───────────────────────────────────────────────────────────────────────────────
+
 
 | Feature                           | Status        | ETA        |
 |-----------------------------------|---------------|------------|
@@ -517,51 +547,36 @@ refactor: Code refactor
 test:     Testing
 chore:    Maintenance
 
-───────────────────────────────────────────────────────────────────────────────
 📄 LICENSE
-───────────────────────────────────────────────────────────────────────────────
+
 
 MIT License - Free for personal and commercial use
 
 Copyright (c) 2025 SAFA Network
 
-───────────────────────────────────────────────────────────────────────────────
+
 👥 TEAM
-───────────────────────────────────────────────────────────────────────────────
 
-SAFA - Creator & Main Developer
+
 GitHub: DP-2006
-
-───────────────────────────────────────────────────────────────────────────────
-🙏 SPECIAL THANKS
-───────────────────────────────────────────────────────────────────────────────
-
-- Django Community
-- Ollama Team for Local AI
-- All Contributors & Testers
 
 ───────────────────────────────────────────────────────────────────────────────
 📞 SUPPORT & CONTACT
 ───────────────────────────────────────────────────────────────────────────────
 
 - GitHub Issues: https://github.com/DP-2006/social_media-SAFA-/issues
-- Email: support@safa-network.local
-
-───────────────────────────────────────────────────────────────────────────────
-🌟 STAR HISTORY
-───────────────────────────────────────────────────────────────────────────────
-
-[![Star History Chart](https://api.star-history.com/svg?repos=DP-2006/social_media-SAFA-&type=Date)](https://star-history.com/#DP-2006/social_media-SAFA-&Date)
-
-───────────────────────────────────────────────────────────────────────────────
-
+- Email: babkuand@gmail.com
+-ID cart for donnate :
+  5892-1012-2958-2614
+  بانک سپه-دانیال پورمهدی
+  sepah bank-Danil pourmehdi
 <div align="center">
 
-### 🚀 Built with passion, powered by AI
+
 
 **⭐ If you like this project, give it a star! ⭐**
 
-<sub>© 2025 SAFA Network - All rights reserved</sub>
+<sub>© 2026 SAFA - All rights reserved</sub>
 
 </div>
 
