@@ -9,7 +9,7 @@ from django.db.models import Count, Q, F, FloatField, Value as V
 from django.db.models.functions import Coalesce, Now, ExtractHour
 from django.core.cache import cache
 from django.utils import timezone
-
+from apps.blocks.models import Block
 from apps.posts.models import Post, Like, Comment
 from apps.hashtags.models import PostHashtag
 from apps.follows.models import Follow
@@ -60,7 +60,7 @@ class ExploreFeedService:
     
     def _get_blocked_ids(self):
         if self._cached_blocked is None:
-            from apps.blocks.models import Block
+            
             self._cached_blocked = set(
                 Block.objects.filter(
                     blocker=self.user
