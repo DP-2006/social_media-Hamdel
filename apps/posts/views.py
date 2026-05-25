@@ -6,6 +6,9 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
+from django.utils import timezone
+from datetime import timedelta
+
 from .models import Post, Comment, Like, SavedPost
 from .serializers import (
     PostSerializer, PostCreateSerializer, PostUpdateSerializer,
@@ -396,3 +399,110 @@ class CommentDetailView(GenericAPIView):
             "success": True, 
             "message": "کامنت با موفقیت حذف شد"
         }, status=status.HTTP_200_OK)
+
+
+
+# ============================================
+# VIDEO-SPECIFIC VIEWS
+# ============================================
+
+class VideoPostsListView(generics.ListAPIView):
+    """
+    List all video posts
+    
+    GET /api/posts/videos/
+    
+    Query params:
+    - limit: Number of posts per page (default 20, max 50)
+    - offset: Pagination offset (default 0)
+    """
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
+    
+    def get_queryset(self):
+        return Post.objects.filter(
+            video__isnull=False,
+            is_deleted=False
+        ).select_related(
+            'user', 'user__profile'
+        ).prefetch_related(
+            'likes', 'comments', 'media_files'
+        ).order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response({
+                "success": True,
+                "data": serializer.data
+            })
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response({
+            "success": True,
+            "data": serializer.data
+        })
+
+
+class TrendingVideosView(GenericAPIView):
+    """
+    Get trending videos based on likes and comments
+    
+    GET /api/posts/videos/trending/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        from django.db.models import Count
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        limit = min(int(request.GET.get('limit', 20)), 50)
+        
+        videos = Post.objects.filter(
+            video__isnull=False,
+            is_deleted=False,
+            created_at__gte=timezone.now() - timedelta(days=7)
+        ).annotate(
+            total_engagement=Count('likes') + Count('comments') * 2
+        ).select_related(
+            'user', 'user__profile'
+        ).prefetch_related(
+            'likes', 'comments', 'media_files'
+        ).order_by('-total_engagement', '-created_at')[:limit]
+        
+        serializer = PostSerializer(videos, many=True, context={'request': request})
+        
+        return Response({
+            "success": True,
+            "data": serializer.data,
+            "count": len(videos)
+        })
+
+
+class SingleVideoView(GenericAPIView):
+    """
+    Get a single video post by ID
+    
+    GET /api/posts/videos/{post_id}/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, post_id):
+        post = get_object_or_404(
+            Post, 
+            id=post_id, 
+            video__isnull=False,
+            is_deleted=False
+        )
+        
+        serializer = PostSerializer(post, context={'request': request})
+        
+        return Response({
+            "success": True,
+            "data": serializer.data
+        })

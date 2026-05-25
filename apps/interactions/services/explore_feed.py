@@ -186,30 +186,61 @@ Example: nature, travel, photography, adventure"""
         
         return posts[:limit]
     
-    def _get_trending_posts(self, limit):
-        following_ids = self._get_following_ids()
-        blocked_ids = self._get_blocked_ids()
+    # def _get_trending_posts(self, limit):
+    #     following_ids = self._get_following_ids()
+    #     blocked_ids = self._get_blocked_ids()
         
-        return Post.objects.filter(
-            created_at__gte=timezone.now() - timedelta(days=7),
-            is_deleted=False
-        ).exclude(
-            user=self.user
-        ).exclude(
-            user_id__in=following_ids
-        ).exclude(
-            user_id__in=blocked_ids
-        ).select_related(
-            'user', 'user__profile'
-        ).prefetch_related(
-            'post_hashtags__hashtag'
-        ).annotate(
-            likes_count=Count('likes', distinct=True),
-            comments_count=Count('comments', distinct=True),
-            saves_count=Count('saved_by_users', distinct=True),
-            total_engagement=F('likes_count') + F('comments_count') * 2 + F('saves_count') * 5
-        ).order_by('-total_engagement', '-created_at')[:limit]
+    #     return Post.objects.filter(
+    #         created_at__gte=timezone.now() - timedelta(days=7),
+    #         is_deleted=False
+    #     ).exclude(
+    #         user=self.user
+    #     ).exclude(
+    #         user_id__in=following_ids
+    #     ).exclude(
+    #         user_id__in=blocked_ids
+    #     ).select_related(
+    #         'user', 'user__profile'
+    #     ).prefetch_related(
+    #         'post_hashtags__hashtag'
+    #     ).annotate(
+    #         likes_count=Count('likes', distinct=True),
+    #         comments_count=Count('comments', distinct=True),
+    #         saves_count=Count('saved_by_users', distinct=True),
+    #         total_engagement=F('likes_count') + F('comments_count') * 2 + F('saves_count') * 5
+    #     ).order_by('-total_engagement', '-created_at')[:limit]
+
+
+
+def _get_trending_posts(self, limit):
+    """
+    دریافت پست‌های ترند بر اساس بیشترین لایک
+    بدون اعمال فیلتر اضافی (حتی پست‌های خود کاربر هم نمایش داده میشه)
+    """
+    blocked_ids = self._get_blocked_ids()
     
+    # فقط کاربران بلاک شده رو فیلتر کن
+    # همه پست‌های دیگه رو نشون بده (شامل پست‌های خود کاربر و فالو شده‌ها)
+    posts = Post.objects.filter(
+        created_at__gte=timezone.now() - timedelta(days=7), 
+        is_deleted=False
+    ).exclude(
+        user_id__in=blocked_ids 
+    ).select_related(
+        'user', 'user__profile'
+    ).prefetch_related(
+        'post_hashtags__hashtag'
+    ).annotate(
+        likes_count=Count('likes', distinct=True),
+        comments_count=Count('comments', distinct=True),
+        saves_count=Count('saved_by_users', distinct=True),
+    ).order_by('-likes_count', '-created_at')[:limit]
+    
+    return posts
+
+
+
+
     def _calculate_recency_score(self, post):
         now = timezone.now()
         age_hours = (now - post.created_at).total_seconds() / 3600
