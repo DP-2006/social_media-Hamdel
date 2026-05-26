@@ -297,7 +297,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from .models import Profile
-from apps.follows.models import Follow # وارد کردن مدل Follow
+from apps.follows.models import Follow 
 from .serializers import (
     ProfileSerializer, ProfileUpdateSerializer, ProfileSearchQuerySerializer, ProfileUserIdSerializer, 
     ProfileFollowToggleResponseSerializer, ProfileResponseSerializer,
@@ -395,7 +395,6 @@ class PublicProfileView(GenericAPIView):
                     "error": "این حساب کاربری خصوصی است"
                 }, status=status.HTTP_403_FORBIDDEN)
         
-        # ساخت دیتای پاسخ
         response_data = {
             "success": True,
             "data": {
@@ -428,7 +427,6 @@ class FollowToggleView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         
         target_user = get_object_or_404(User, id=user_id)
-        # target_profile = get_object_or_404(Profile, user=target_user) # نیاز نیست
         
         if request.user == target_user:
             return Response({
@@ -473,12 +471,9 @@ class FollowersListView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         
         user = get_object_or_404(User, id=user_id)
-        # profile = get_object_or_404(Profile, user=user) # نیاز نیست
         
-        # گرفتن ID فالوورها از مدل Follow
         follower_ids = Follow.objects.filter(following=user).values_list('follower', flat=True)
         
-        # گرفتن اطلاعات کاربران با یک کوئری بهینه
         followers = User.objects.filter(id__in=follower_ids).select_related('profile')
         
         followers_data = []
@@ -508,12 +503,10 @@ class FollowingListView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         
         user = get_object_or_404(User, id=user_id)
-        # profile = get_object_or_404(Profile, user=user) # نیاز نیست
+        # profile = get_object_or_404(Profile, user=user) 
         
-        # گرفتن ID فولوینگ‌ها از مدل Follow
         following_ids = Follow.objects.filter(follower=user).values_list('following', flat=True)
         
-        # گرفتن اطلاعات کاربران با یک کوئری بهینه
         following = User.objects.filter(id__in=following_ids).select_related('profile')
         
         following_data = []
@@ -552,7 +545,7 @@ class SearchUserView(GenericAPIView):
         
         results = []
         for user in users:
-            # profile = Profile.objects.get(user=user) # نیاز نیست چون select_related شده
+            
             profile = user.profile
             is_following = Follow.objects.filter(
                 follower=request.user, 
