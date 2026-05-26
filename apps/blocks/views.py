@@ -161,49 +161,164 @@ class BlockViewSet(GenericViewSet,
             status=status.HTTP_200_OK
         )
     
-    @action(detail=False, methods=['post'], url_path='toggle-block', serializer_class=ToggleBlockSerializer)
-    def toggle_block(self, request):
-        """
-        Toggle block status for a user (block if not blocked, unblock if blocked)
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    # @action(detail=False, methods=['post'], url_path='toggle-block', serializer_class=ToggleBlockSerializer)
+    # def toggle_block(self, request):
+    #     """
+    #     Toggle block status for a user (block if not blocked, unblock if blocked)
+    #     """
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
         
-        user_id = serializer.validated_data['user_id']
-        reason = serializer.validated_data.get('reason', '')
+    #     user_id = serializer.validated_data['user_id']
+    #     reason = serializer.validated_data.get('reason', '')
         
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response(
-                {'error': 'user not found error'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+    #     try:
+    #         user = User.objects.get(id=user_id)
+    #     except User.DoesNotExist:
+    #         return Response(
+    #             {'error': 'user not found error'},
+    #             status=status.HTTP_404_NOT_FOUND
+    #         )
         
-        if user == request.user:
-            return Response(
-                {'error': 'خود درگیری داری ؟؟'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    #     if user == request.user:
+    #         return Response(
+    #             {'error': 'خود درگیری داری ؟؟'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
         
-        blocked, created = Block.objects.get_or_create(
-            blocker=request.user,
-            blocked=user,
-            defaults={'reason': reason} # dict show create time not resive time 
-        )
+    #     blocked, created = Block.objects.get_or_create(
+    #         blocker=request.user,
+    #         blocked=user,
+    #         defaults={'reason': reason} # dict show create time not resive time 
+    #     )
         
-        if not created:
-            blocked.delete()
-            return Response(
-                {'status': 'unblocked', 'action': 'unblock'},
-                status=status.HTTP_200_OK
-            )
+    #     if not created:
+    #         blocked.delete()
+    #         return Response(
+    #             {'status': 'unblocked', 'action': 'unblock'},
+    #             status=status.HTTP_200_OK
+    #         )
         
+    #     return Response(
+    #         {'status': 'blocked', 'action': 'block'},
+    #         status=status.HTTP_201_CREATED
+    #     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# بخش toggle_block در views.py رو اینطور اصلاح کن:
+
+@action(detail=False, methods=['post'], url_path='toggle-block', serializer_class=ToggleBlockSerializer)
+def toggle_block(self, request):
+    """
+    Toggle block status for a user (block if not blocked, unblock if blocked)
+    """
+    serializer = self.get_serializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    
+    user_id = serializer.validated_data['user_id']
+    reason = serializer.validated_data.get('reason', '')
+    
+    # UUID به صورت رشته است
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
         return Response(
-            {'status': 'blocked', 'action': 'block'},
-            status=status.HTTP_201_CREATED
+            {'error': 'user not found error', 'success': False},
+            status=status.HTTP_404_NOT_FOUND
         )
     
+    if user == request.user:
+        return Response(
+            {'error': 'نمیتوانید خودتان را بلاک کنید', 'success': False},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    blocked, created = Block.objects.get_or_create(
+        blocker=request.user,
+        blocked=user,
+        defaults={'reason': reason}
+    )
+    
+    if not created:
+        blocked.delete()
+        return Response(
+            {'success': True, 'action': 'unblocked', 'message': f'کاربر {user.username} آنبلاک شد'},
+            status=status.HTTP_200_OK
+        )
+    
+    return Response(
+        {'success': True, 'action': 'blocked', 'message': f'کاربر {user.username} بلاک شد'},
+        status=status.HTTP_201_CREATED
+    )
+
+
+@action(detail=False, methods=['get'], url_path='check-block', serializer_class=CheckBlockSerializer)
+def check_block(self, request):
+    """
+    Check block status between current user and another user
+    """
+    serializer = self.get_serializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    
+    user_id = serializer.validated_data['user_id']
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'user not found', 'success': False},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    is_blocked = Block.objects.filter(
+        blocker=request.user,
+        blocked=user
+    ).exists()
+    
+    is_blocked_by = Block.objects.filter(
+        blocker=user,
+        blocked=request.user
+    ).exists()
+    
+    return Response({
+        'success': True,
+        'user_id': str(user.id),
+        'username': user.username,
+        'is_blocked': is_blocked,
+        'is_blocked_by': is_blocked_by,
+        'can_interact': not is_blocked and not is_blocked_by
+    })
+
+
+
+
     @action(detail=False, methods=['get'], url_path='check-block', serializer_class=CheckBlockSerializer)
     def check_block(self, request):
         """
