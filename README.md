@@ -507,15 +507,6 @@ Note: All primary keys use UUID for security.
 🎯 UPCOMING FEATURES
 
 
-| Feature                           | Status        | ETA        |
-|-----------------------------------|---------------|------------|
-| 🔴 Anonymous Chat (AI Matching)   | In Development| Next Week  |
-| 🟡 WebSocket Real-time Messages   | In Progress   | 2 Weeks    |
-| 🟢 Push Notifications             | Planned       | 3 Weeks    |
-| 🔵 Video Calls                    | Planned       | 1 Month    |
-| 🟣 Group Chats Enhancement        | Planned       | 2 Weeks    |
-| 🟠 Story Reactions                | Backlog       | -          |
-| 🟤 Voice Messages                 | Backlog       | -          |
 
 ───────────────────────────────────────────────────────────────────────────────
 🤝 CONTRIBUTING
