@@ -136,7 +136,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',  # Note the closing quote and comma
+        'ENGINE': 'django.db.backends.sqlite3',  
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
@@ -160,10 +160,10 @@ DATABASES = {
 #         'NAME': 'DjangoDB',
 #         'USER': 'DjangoUser',
 #         'PASSWORD': 'Django@2024#Strong',
-#         'HOST': '192.168.1.2000',
-#         'PORT': '1433',
+#         'HOST': '000.000.1.2000',
+#         'PORT': '5500',
 #         'OPTIONS': {
-#             'driver': 'SQL Server Native Client 11.0',  
+#             'driver': 'SQL Server Native Client 1.0',  
 #             'MARS_Connection': 'Yes',
 #             'ExtraParams': 'TrustServerCertificate=yes',
 #         },
