@@ -18,9 +18,8 @@
 
 </div>
 
-───────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────
 📌 ABOUT 
-───────────────────────────────────────────────────────────────────────────────
 
 Safa is a complete, production-ready backend for a modern social network. 
 Built with Django Rest Framework and powered by Ollama AI, it delivers 
