@@ -1,373 +1,414 @@
+# Social Media Platform - Instagram-Like
 
-<div align="center">
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-69.4%25-3776ab.svg)](https://www.python.org/)
+[![HTML](https://img.shields.io/badge/HTML-30.6%25-e34c26.svg)](https://html.spec.whatwg.org/)
+[![Django](https://img.shields.io/badge/Django-4.2+-green.svg)](https://www.djangoproject.com/)
+[![AI Powered](https://img.shields.io/badge/AI%20Powered-🤖-FF6B6B.svg)](#-artificial-intelligence-features)
+[![Language](https://img.shields.io/badge/Language-Persian%20(Farsi)-00A86B.svg)](#-language-support)
 
-# 🧠 Social Network
+> An Instagram-like social media platform with advanced AI-powered features enabling intelligent content discovery, personalised feed recommendations, and comprehensive user behaviour analytics.
 
-<img src="https://img.shields.io/badge/Django-5.0-092E20?style=for-the-badge&logo=django&logoColor=white"/>
-<img src="https://img.shields.io/badge/Ollama-0.1.8-000000?style=for-the-badge&logo=ollama&logoColor=white"/>
-<img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white"/>
+## 📋 Overview
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#project-structure">Structure</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#api-endpoints">API</a> •
-  <a href="#debug-log">Debug Log</a> •
-  <a href="#upcoming-features">Coming Soon</a>
-</p>
+**Social Media Platform** is a feature-rich social networking application designed as a modern alternative to Instagram. It combines visual content sharing with cutting-edge artificial intelligence to provide users with personalised experiences, intelligent content discovery, and administrators with powerful user analytics capabilities.
 
-</div>
+## 🎯 Key Features
 
-──────────────────────────────────────
-📌 ABOUT 
+### 📸 Content Sharing (Instagram-Style)
+- **Photo Sharing** - Upload and share high-quality images with filters and editing tools
+- **Video Reels** - Share short-form video content similar to Instagram Reels
+- **Stories** - Ephemeral content that disappears after 24 hours
+- **Image Filters** - Apply professional filters to enhance photos
+- **Captions & Hashtags** - Add descriptive captions and hashtags to posts
+- **Content Organisation** - Organise posts with tags, categories, and collections
+- **Rich Media Gallery** - Carousel posts with multiple images and videos
 
-Safa is a complete, production-ready backend for a modern social network. 
-Built with Django Rest Framework and powered by Ollama AI, it delivers 
-everything from OTP authentication to intelligent conversation starters.
+### 💬 Direct Messaging (Instagram DM Style)
+- **One-to-One Messaging** - Private direct messages with individual users
+- **Group Conversations** - Create group DMs for team or friend communications
+- **Real-Time Notifications** - Instant message notifications and delivery status
+- **Message History** - Searchable message archives
+- **Media in Messages** - Share images and videos directly in conversations
+- **Message Reactions** - React to messages with emojis
+- **Typing Indicators** - See when someone is typing
+- **Read Receipts** - Track message read status
 
-> "Strong, scalable, and smart — just like your next big idea."
+### 👤 User Profiles
+- **Customisable Profiles** - Create and personalise your Instagram-style profile
+- **Bio & Links** - Display bio, website, and contact information
+- **Profile Picture** - Upload circular profile avatar
+- **Verified Badges** - Verification system for notable accounts
+- **Followers/Following** - Display follower and following counts
+- **Activity Timeline** - Showcase user posts and interactions
+- **Privacy Controls** - Control who can view your profile and content
+- **Highlight Stories** - Pin and categorise stories for permanent display
 
+### 🤖 Artificial Intelligence Features
 
-✨ FEATURES
+#### Intelligent Content Discovery
+- **Smart Explore Feed** - AI-powered Explore page that learns your interests
+  - The system identifies your preferences through interaction analysis
+  - Content recommendations adapt dynamically based on your behaviour
+  - Similar to Instagram Explore, but powered by intelligent machine learning
+- **Personalised Recommendations** - Machine learning algorithms suggest content based on your behaviour
+- **Interest Detection** - AI analyses your interactions to identify your interests
+  - Tracks posts you like, comments you make, and content you view
+  - Builds a detailed interest profile automatically
+  - Improves recommendations over time with more interactions
+- **Content Ranking** - Algorithms rank content relevance specifically for you
+- **Trend Detection** - AI identifies trending content in your interest areas
+- **Visual Recognition** - Advanced image recognition to categorise and tag content
 
-| Category          | Capability                                      |
-|-------------------|-------------------------------------------------|
-| 👤 Authentication | OTP Registration/Login, JWT Tokens              |
-| 📝 Posts          | Create, Edit, Delete, Like, Comment             |
-| 🔍 Hashtags       | Advanced hashtag search                         |
-| 🤖 AI Intelligence| Post & User analysis with Qwen 7B and gemma:27b |
-| 📊 User Analytics | Behavior pattern recognition                    |
-| ✅ Health Check   | Ollama & Database status                        |
-| 💬 Direct Messages| Private chat between users                      |
-| 🎭 Anonymous Chat | AI-powered partner matching (Coming Soon)       |
-| 📸 Stories        | 24-hour ephemeral content                       |
-| 🔒 Block System   | Two-way blocking                                |
-| 🔍 Smart Search   | Users, posts, hashtags                          |
+#### Behaviour Analysis & User Analytics
+- **User Behaviour Tracking** - Analyse user interaction patterns and engagement
+  - Track viewing duration, engagement frequency, and content preferences
+  - Identify peak activity times and usage patterns
+  - Monitor social interactions and networking patterns
+- **Interest Profiling** - Build comprehensive profiles of user interests and preferences
+  - Automatic categorisation of user interests
+  - Interest evolution tracking over time
+  - Cross-interest pattern detection
+- **Engagement Metrics** - Track likes, comments, shares, and view duration
+- **Content Affinity** - Identify which types of content users prefer
+- **Predictive Analytics** - Forecast user behaviour and content preferences
+  - Predict which content users will engage with
+  - Anticipate user churn and retention risks
+  - Recommend optimal posting times for maximum engagement
+- **Trend Analysis** - Identify emerging interests and content preferences
+  - Detect rising trends before they peak
+  - Identify seasonal interest variations
+  - Forecast future content trends
+- **User Segmentation** - Automatically segment users based on behaviour and interests
+  - Demographic analysis based on content preferences
+  - Behavioural clustering for targeted recommendations
+  - Dynamic user groups based on engagement patterns
+- **Anomaly Detection** - Identify unusual user behaviour for security purposes
+  - Detect suspicious account activity
+  - Identify potential account compromises
+  - Flag unusual content posting patterns
 
-🏗️ PROJECT STRUCTURE
+#### AI-Powered Administration Tools
+- **User Analytics Dashboard** - Comprehensive insights into user behaviour patterns
+  - Visual analytics on user engagement and activity
+  - Real-time monitoring of platform metrics
+  - Customisable analytics reports
+- **Content Moderation AI** - Automatic detection of inappropriate or harmful content
+  - Image and text analysis for policy violations
+  - Automated flagging of suspicious content
+  - Intelligent categorisation of moderation issues
+- **Spam Detection** - Identify and filter spam posts and accounts
+  - Pattern recognition for spam behaviour
+  - Automated spam account detection
+  - Content similarity analysis for duplicate spam
+- **Bot Detection** - Recognise and flag automated accounts
+  - Behaviour pattern analysis to identify bots
+  - Activity frequency and pattern matching
+  - Automated bot account quarantine
+- **Duplicate Content Detection** - Identify and manage duplicate or similar posts
+  - Visual similarity detection for images
+  - Content fingerprinting for text
+  - Cross-post plagiarism detection
+- **User Insights Reports** - Generate detailed reports on individual user activities
+  - Comprehensive user activity logs
+  - Engagement timeline analysis
+  - Interest evolution reports
+  - Content consumption patterns
+- **Platform Analytics** - Monitor overall platform health and engagement metrics
+  - Daily/weekly/monthly platform statistics
+  - User growth and retention metrics
+  - Content distribution analysis
+  - Network health indicators
 
-social_media-/
-├── apps/
-│   ├── accounts/          # OTP + JWT authentication
-│   ├── profiles/          # User profiles & settings
-│   ├── posts/             # Posts, likes, comments
-│   ├── follows/           # Follow/unfollow system
-│   ├── stories/           # 24-hour stories
-│   ├── messaging/         # Direct messages
-│   ├── hashtags/          # Hashtag management
-│   ├── interactions/      # Explore feed
-│   ├── blocks/            # Block system
-│   ├── ml/                # Ollama AI integration
-│   └── search/            # Smart search
-├── core/                  # Base models & utilities
-├── config/                # Django settings
-├── media/                 # Uploaded files
-├── static/                # Static files
+### 🔔 Notifications System
+- **Activity Notifications** - Get notified of likes, comments, and follows
+- **Message Alerts** - Alerts for new direct messages and group messages
+- **Story Notifications** - Be notified when friends post stories
+- **Customisable Preferences** - Configure notification settings and frequency
+- **Notification History** - View all past notifications
+- **Smart Notifications** - Intelligent grouping and prioritisation
+
+### 🤝 Social Interactions
+- **Follow System** - Follow other users to see their content in your feed
+- **Like & Reactions** - Express appreciation with likes and emoji reactions
+- **Comments** - Discuss content with thoughtful comments
+- **Replies** - Reply directly to individual comments
+- **Sharing/Repost** - Share others' content with your followers
+- **Mentions** - Tag and mention other users in posts and comments
+- **Hashtags** - Categorise and discover content using hashtags
+- **Location Tags** - Tag locations in your posts for geographic discovery
+
+### 🔐 Security & Privacy
+- **User Authentication** - Secure login with email or username
+- **Two-Factor Authentication** - Optional 2FA for enhanced security
+- **Privacy Settings** - Control post visibility (Public, Private, Close Friends)
+- **Block Users** - Block unwanted users from contacting or viewing you
+- **Mute Accounts** - Mute accounts without unfollowing
+- **Report Content** - Report inappropriate, harmful, or copyright-infringing content
+- **Data Encryption** - Secure end-to-end encryption for messages
+- **Session Management** - Secure session handling and device logout
+
+### 🎨 User Experience
+- **Responsive Design** - Optimised for Instagram-like mobile-first experience
+- **Intuitive Interface** - Clean, minimal, and easy-to-navigate design
+- **Dark/Light Mode** - Toggle between dark and light themes
+- **Real-Time Updates** - Instant feed updates without page refresh
+- **Smooth Animations** - Professional transitions and interactions
+- **Bottom Navigation** - Instagram-style bottom navigation bar
+- **Accessibility Features** - WCAG-compliant design for all users
+
+## 🛠️ Technology Stack
+
+- **Backend**: Django (Python 3.8+)
+- **Frontend**: HTML5, CSS3, JavaScript
+- **AI/ML**: TensorFlow, scikit-learn, Natural Language Processing libraries
+- **Real-Time Communication**: WebSockets/Django Channels
+- **Media Processing**: Pillow for image processing, FFmpeg for video encoding
+- **Database**: PostgreSQL (recommended)
+- **Caching**: Redis for performance optimisation and real-time features
+- **Storage**: Cloud storage integration (AWS S3, Azure Blob, Google Cloud Storage)
+- **API**: Django REST Framework for RESTful APIs
+- **Authentication**: Django Allauth, JWT tokens
+- **Search**: Elasticsearch for advanced search capabilities
+- **Analytics**: Custom analytics engine with AI integration
+- **License**: MIT
+
+## 🌍 Language Support
+
+### Currently Supported
+- 🇮🇷 **Persian (Farsi)** - Full support with RTL (Right-to-Left) interface
+
+### Coming Soon
+- 🇬🇧 English
+- 🇪🇸 Spanish
+- 🇫🇷 French
+- 🇩🇪 German
+- 🇮🇹 Italian
+- 🇰🇷 Korean
+- 🇯🇵 Japanese
+- 🇨🇳 Simplified Chinese
+- And more languages to follow...
+
+**Language switching** will be available in user settings with dynamic UI localisation.
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
+- Virtual Environment (recommended)
+- PostgreSQL database (recommended for production)
+- Redis (optional, for real-time features and caching)
+- TensorFlow or PyTorch (for AI features)
+
+### Installation
+
+1. **Clone the Repository**
+```bash
+git clone https://github.com/DP-2006/social_media.git
+cd social_media
+```
+
+2. **Create Virtual Environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Install ML Dependencies** (for AI features)
+```bash
+pip install -r requirements-ml.txt
+```
+
+5. **Configure Settings**
+```bash
+# Copy example configuration
+cp .env.example .env
+
+# Edit configuration file with your settings
+nano .env
+```
+
+6. **Run Database Migrations**
+```bash
+python manage.py migrate
+```
+
+7. **Create Superuser Account**
+```bash
+python manage.py createsuperuser
+```
+
+8. **Collect Static Files**
+```bash
+python manage.py collectstatic --noinput
+```
+
+9. **Train AI Models** (optional, for enhanced recommendations)
+```bash
+python manage.py train_recommendation_model
+```
+
+10. **Start Development Server**
+```bash
+python manage.py runserver
+```
+
+Access the application at `http://localhost:8000`
+
+## 📖 Usage
+
+### For Users
+1. **Sign Up** - Create a new account with email and username
+2. **Complete Profile** - Add profile picture, bio, and personal information
+3. **Personalise** - Follow users and interact with their content
+4. **Share Content** - Post photos, videos, reels, and stories
+5. **Discover** - Use the AI-powered Explore feed to find content matching your interests
+6. **Interact** - Like, comment, share, and message other users
+7. **Connect** - Send direct messages and build your community
+
+### For Administrators
+1. **Access Admin Dashboard** - Monitor platform activity and user behaviour
+2. **User Analytics** - View detailed analytics on user interests and behaviour
+3. **Content Moderation** - Review and moderate user-generated content
+4. **AI Insights** - Use machine learning tools to analyse user patterns
+5. **Report Generation** - Generate comprehensive platform and user reports
+6. **System Configuration** - Configure platform settings and AI parameters
+
+## 📁 Project Structure
+
+```
+social_media/
 ├── manage.py
-└── requirements.txt
+├── requirements.txt
+├── requirements-ml.txt
+├── .env.example
+├── README.md
+├── LICENSE
+├── social_media/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+├── apps/
+│   ├── accounts/              # User authentication
+│   ├── profiles/              # User profiles
+│   ├── posts/                 # Photo and video posts
+│   ├── reels/                 # Short-form video content
+│   ├── stories/               # Ephemeral stories
+│   ├── messaging/             # Direct messages (DMs)
+│   ├── feed/                  # User feed
+│   ├── explore/               # Explore/Discovery
+│   ├── ai_engine/             # AI and ML modules
+│   ├── analytics/             # User behaviour analytics
+│   ├── notifications/         # Notification system
+│   └── admin_panel/           # Administration
+├── ml_models/                 # Pre-trained ML models
+│   ├── recommendation/        # Content recommendation models
+│   ├── content_moderation/    # Content safety models
+│   ├── interest_detection/    # User interest detection
+│   └── behaviour_analysis/    # Behaviour analysis models
+├── static/
+│   ├── css/
+│   ├── js/
+│   └── images/
+└── media/                     # User uploaded files
+```
 
-🚀 INSTALLATION
+## 🔒 Security Considerations
 
-Prerequisites:
-- Python 3.10+
-- PostgreSQL 16+ (or SQLite for development)
-- Ollama (optional, for AI features)
+- **Never** commit `.env` files or sensitive configuration
+- Always use HTTPS in production environments
+- Implement rate limiting on authentication endpoints
+- Enable CSRF protection and security headers
+- Validate and sanitise all user inputs
+- Use content security policies (CSP)
+- Regularly update dependencies for security patches
+- Implement CORS policies for API endpoints
+- Monitor for suspicious activities and abuse
+- Encrypt sensitive user data
+- Regularly audit AI model predictions for bias
 
-Step-by-Step Setup:
+## 🤝 Contributing
 
-1. Clone the repository
-   git clone https://github.com/DP-2006/social_media-SAFA-.git
-   cd social_media-SAFA-
+We welcome contributions from the community! To contribute:
 
-2. Create virtual environment
-   python -m venv venv
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to your branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-3. Activate virtual environment
-   Windows:  venv\Scripts\activate
-   Linux/Mac: source venv/bin/activate
+## 📝 License
 
-4. Install dependencies
-   pip install -r requirements.txt
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-5. Set up environment variables
-   cp .env.example .env
-   Edit .env with your settings
+## 👨‍💻 Development Team
 
-6. Run migrations
-   python manage.py makemigrations
-   python manage.py migrate
+- **DP-2006** - Project Owner and Lead Developer
 
-7. Create superuser (optional)
-   python manage.py createsuperuser
+## 📞 Support & Feedback
 
-8. Collect static files
-   python manage.py collectstatic
+If you encounter any issues or have suggestions:
 
-9. Run the development server
-   python manage.py runserver
+- Open an [Issue](https://github.com/DP-2006/social_media/issues) on GitHub
+- Check existing documentation and FAQs
+- Contact the development team directly
 
-Environment Variables (.env):
+## 📊 Project Statistics
 
-DEBUG=True
-SECRET_KEY=your-super-secret-key-here
-DATABASE_URL=postgresql://user:password@localhost:5432/safa_db
+- **Primary Language**: Python (69.4%)
+- **Frontend**: HTML (30.6%)
+- **Status**: Active Development
+- **AI Integration**: ✅ Enabled
+- **Languages Supported**: Persian (Farsi), more coming soon
+- **License Type**: MIT
 
-Ollama Configuration:
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma3:27b
-OLLAMA_ENABLED=True
+## 🗺️ Roadmap
 
-Search Settings:
-SEARCH_USE_OLLAMA=True
+- [x] Core social media features (posts, stories, reels, DMs)
+- [x] AI-powered Explore feed based on user interests
+- [x] User behaviour analytics and profiling
+- [ ] Live streaming capability
+- [ ] Advanced search and filtering
+- [ ] Stories with interactive elements (polls, questions)
+- [ ] Creator monetisation features
+- [ ] Badges and achievements system
+- [ ] Mobile application (iOS/Android)
+- [ ] Multi-language support expansion
+- [ ] Advanced AI-powered content recommendations
+- [ ] Community guidelines enforcement with AI
+- [ ] Creator analytics dashboard
+- [ ] Integration with external services
 
-JWT Settings:
-ACCESS_TOKEN_LIFETIME=5
-REFRESH_TOKEN_LIFETIME=1
+## 🔗 Useful Links
 
+- [Django Documentation](https://docs.djangoproject.com/)
+- [Django REST Framework](https://www.django-rest-framework.org/)
+- [Django Channels](https://channels.readthedocs.io/)
+- [TensorFlow Documentation](https://www.tensorflow.org/)
+- [scikit-learn Documentation](https://scikit-learn.org/)
+- [Pillow Documentation](https://pillow.readthedocs.io/)
 
+## 📱 Platform Compatibility
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# README Section
-
-## Ollama AI Integration
-
-### Model Installation
-
-Install the desired model using Ollama. We currently recommend the **Qwen 2.7B** model.
-
-> ⚠️ **Note:** You may encounter issues such as lack of image processing support with certain models.
-
-### Configuration
-
-To change the model or adjust additional settings:
-
-1. Navigate to `app ml → service → ollama_client.py`
-2. Modify the model and port settings as needed
-
-For **hashtag** and **direct messaging** sections, follow the same approach in the `service` directory.
-
-> ⚠️ **Important:** Ensure the required port is open in your firewall before running the application.
-
-### Ollama Explore (Temporarily Disabled)
-
-The Ollama Explore feature is currently **paused** due to server execution issues. To get started:
-
-1. Go to the `serializer` in `ml` app
-2. Enable `interaction service`
-
-> 💡 **Note:** Services operate independently across all sections, making them reusable in other development projects. All existing apps will be updated accordingly in the near future.
-
-### API Development
-
-Python developers can write custom `serializers` and `views` to create API endpoints. This feature will be added by the development team soon.
-
-> 🚀 **Good News:** The system works without Ollama Explore, which is great for enthusiasts who want to experiment!
-
-### Database Support
-
-This system supports **SQL** and **PostgreSQL** databases. Configuration is available in `config → setting`.
-
-> ⚠️ **Note:** The current databases do not utilize a multi-tenant system. Please keep this in mind when referencing the codebase.
-
-### AI Learning System
-
-The system performs **gradual AI learning** through Ollama, albeit in a limited capacity. The goal is to leverage Ollama's capabilities effectively.
-
-> ⚠️ **Important:** AI response quality depends entirely on the model and its training. **Do not rely solely on AI outputs** — errors are likely to occur!
+- **Desktop**: Chrome, Firefox, Safari, Edge
+- **Mobile**: iOS Safari, Android Chrome
+- **Tablet**: All modern browsers with responsive design
 
 ---
 
-## Contributing
-
-We welcome suggestions, corrections, and feedback from all enthusiasts in this field. Your input is greatly appreciated! 🙏
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-📡 API ENDPOINTS
-
-Base URL: http://127.0.0.1:8000/api/
-
-Authentication Header:
-Authorization: Bearer <your_access_token>
-
-🔐 ACCOUNTS (5 endpoints)
-
-
-POST   /api/accounts/register/send-otp/     Send OTP for registration
-POST   /api/accounts/register/verify/       Verify OTP & register
-POST   /api/accounts/login/send-otp/        Send OTP for login
-POST   /api/accounts/login/verify/          Verify OTP & get token
-POST   /api/accounts/logout/                Logout user
-
-
-👤 PROFILES (3 endpoints)
-
-
-GET    /api/profiles/me/                    Get my profile
-PATCH  /api/profiles/me/                    Update my profile
-GET    /api/profiles/{user_id}/             Get user profile
-
-
-📝 POSTS (11 endpoints)
-
-
-GET    /api/posts/feed/                     Main feed
-GET    /api/posts/explore/                  Explore feed (AI-powered)
-GET    /api/posts/                          List all posts
-POST   /api/posts/                          Create post
-GET    /api/posts/{id}/                     Get post details
-PATCH  /api/posts/{id}/                     Update post
-DELETE /api/posts/{id}/                     Delete post
-POST   /api/posts/{id}/like/                Like post
-DELETE /api/posts/{id}/like/                Unlike post
-POST   /api/posts/{id}/save/                Save post
-GET    /api/posts/saved/                    Saved posts list
-
-
-💬 COMMENTS (3 endpoints)
-
-
-GET    /api/posts/{id}/comments/            Get comments
-POST   /api/posts/{id}/comments/            Add comment
-DELETE /api/posts/comments/{id}/            Delete comment
-
-
-👥 FOLLOWS (4 endpoints)
-
-
-POST   /api/follows/toggle/{user_id}/       Follow/Unfollow
-GET    /api/follows/users/{id}/followers/   Followers list
-GET    /api/follows/users/{id}/following/   Following list
-GET    /api/follows/users/{id}/counts/      Follow stats
-
-
-📸 STORIES (5 endpoints)
-
-POST   /api/stories/                        Create story
-GET    /api/stories/my/                     My stories
-GET    /api/stories/following/              Following stories
-POST   /api/stories/{id}/view/              Mark as viewed
-DELETE /api/stories/{id}/delete/            Delete story
-
-
-💌 MESSAGING (6 endpoints)
-
-
-GET    /api/messages/conversations/         List conversations
-POST   /api/messages/conversations/         Create conversation
-GET    /api/messages/conversations/{id}/messages/ Get messages
-POST   /api/messages/conversations/{id}/messages/ Send message
-GET    /api/messages/analyze-target/{user_id}/ AI user analysis
-GET    /api/messages/suggestions/opening/{user_id}/ AI message suggestions
-
-
-🔍 SEARCH (5 endpoints)
-
-
-GET    /api/search/?q={query}               Global search
-GET    /api/search/user/@{username}/        Exact user search
-GET    /api/search/users/?q={query}         Search users
-GET    /api/search/posts/?q={query}         Search posts
-GET    /api/search/hashtags/?q={query}      Search hashtags
-
-
-🤖 AI/ML (4 endpoints)
-
-
-GET    /api/ml/health/                      AI service health
-GET    /api/ml/users/{id}/analyze/          Analyze user
-GET    /api/ml/explore/                     AI recommendations
-GET    /api/ml/recommended-hashtags/        Hashtag suggestions
-
-
-🚫 BLOCKS (2 endpoints)
-
-
-POST   /api/blocks/toggle/{user_id}/        Block/Unblock
-GET    /api/blocks/blocked/                 Blocked users list
-
-
-Total: 48 API Endpoints | 43 Require Authentication
-
-
-
-🤖 AI INTEGRATION (OLLAMA)
-
-
-Setup Ollama:
-
-# Install Ollama (Linux/Mac)
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Or download from https://ollama.ai/download (Windows)
-
-# Pull the model
-ollama pull gemma3:27b
-
-# Or use Qwen for faster responses
-ollama pull qwen:7b
-
-# Run Ollama server
-ollama serve
-
-AI Features:
-
-Example AI Response:
-
-{
-  "analysis": {
-    "personality_type": "Creative & Social",
-    "engagement_pattern": "High evening activity",
-    "interests": ["Technology", "Photography", "Music"],
-    "suggested_connection": "Similar users with art interests"
-  }
-}
-
-📞 SUPPORT & CONTACT
-
-- GitHub Issues: https://github.com/DP-2006/social_media-SAFA-/issues
-- Email: babkuand@gmail.com
 <div align="center">
 
+**Built with ❤️ and 🤖 AI for modern social networking**
 
+*Share your moments, discover your interests, and connect with people worldwide.*
 
-
-<sub>© 2026 SAFA - All rights reserved</sub>
+**An Instagram-like platform powered by Artificial Intelligence for personalised experiences**
 
 </div>
-
