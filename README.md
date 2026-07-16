@@ -378,7 +378,6 @@ If you encounter any issues or have suggestions:
 
 <div align="center">
 
-**Built with ❤️ and 🤖 AI for modern social networking**
 
 *Share your moments, discover your interests, and connect with people worldwide.*
 
